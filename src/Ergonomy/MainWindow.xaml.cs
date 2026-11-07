@@ -200,18 +200,22 @@ public partial class MainWindow : Window
     }
     private void AdvanceVisibleSession(double elapsed)
     {
+        if(!double.IsFinite(elapsed)||elapsed<=0||elapsed>3)return;
         if(_active!=null&&_shown&&IsVisible&&!_quiet&&(_diagnosticOnly||!_engine.IsIdle)&&!_quick&&!_about&&!_preferences&&!_library)
         {
             _alertAge+=elapsed;
             int previous=_lesson?.Index??-1;
+            bool wasComplete=_lesson?.StepComplete??false;
             _lesson?.Advance(elapsed);
             if(_lesson is {AutoFinished:true}){Finish(ReminderResponse.TimedOut);return;}
-            if(_lesson!=null&&_lesson.Index!=previous){_alertAge=0;CoachBuddy.RestartPose();FitHeight();}
+            bool changed=_lesson!=null&&_lesson.Index!=previous;
+            if(changed){_alertAge=0;CoachBuddy.RestartPose();BodyScroll.ScrollToTop();}
             if(_lesson==null){
                 PromptTimeout.Text=$"جمع‌شدن خودکار تا {FaNumber(Math.Max(0,20-(int)_alertAge))} ثانیه";
                 if(_alertAge>=20){Finish(ReminderResponse.TimedOut);return;}
             }
             UpdateLesson();
+            if(changed||(_lesson!=null&&_lesson.StepComplete!=wasComplete))FitHeight();
         }
     }
     private void UpdateNext()
