@@ -39,3 +39,11 @@ Intervals count active user time, stop after 3 min input inactivity, and pause w
 Users with pain, visual symptoms, disability, pregnancy, post-surgical limitations, or other individual needs should receive tailored occupational-health assessment. Never give aggressive stretch instructions or collect health details without need. The app does not inspect camera, microphone, screen contents, or keystrokes, and cannot know whether posture is correct.
 
 The ISO text is paywalled beyond its public scope: do not claim product certification or reproduce proprietary technical clauses. This research is not a legal compliance determination for any particular country.
+
+## RC1 source recheck (2026-11-07)
+
+Rechecked primary HSE work-routine / VDU-break guidance, OSHA monitor and work-process guidance, ISO public 9241-5:2024 scope, AOA computer-vision guidance and CDC/NIOSH office environment / working-from-home guidance. No proprietary ISO clauses were accessed. The 30-minute posture cadence is explicitly a product heuristic, not a published ISO requirement. ISO 45001 concerns management systems and does not certify this reminder application.
+
+Additional current primary source: https://www.cdc.gov/niosh/office-environment/about/
+
+RC1 continues counting active work while one reminder is open; prevents repeat delivery via a single pending slot, a 90-active-second delivery cooldown and a 90-wall-second prompt timeout. Practice does not reset the automatic schedule. Snooze defers only that reminder kind by ten monotonic elapsed minutes, rather than pausing all categories. Manual pause freezes active work. Quiet/fullscreen suppresses delivery while active work can continue; sleep gaps over five seconds do not count as work. Session unlock resets the tick baseline. The software cannot verify eye rest, exercise completion, hydration or actual posture.

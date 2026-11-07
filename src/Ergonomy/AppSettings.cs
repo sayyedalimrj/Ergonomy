@@ -4,18 +4,6 @@ using Microsoft.Win32;
 
 namespace Ergonomy;
 
-public sealed class AppSettings
-{
-    public bool EyeEnabled { get; set; } = true;
-    public bool PostureEnabled { get; set; } = true;
-    public bool MoveEnabled { get; set; } = true;
-    public bool WaterEnabled { get; set; } = false;
-    public int EyeMinutes { get; set; } = 20;
-    public int PostureMinutes { get; set; } = 30;
-    public int MoveMinutes { get; set; } = 55;
-    public int WaterMinutes { get; set; } = 120;
-    public bool AutoStart { get; set; } = true;
-}
 
 public static class SettingsStore
 {
@@ -37,6 +25,7 @@ public static class SettingsStore
                     s.PostureMinutes = Math.Clamp(s.PostureMinutes, 1, 480);
                     s.MoveMinutes = Math.Clamp(s.MoveMinutes, 1, 480);
                     s.WaterMinutes = Math.Clamp(s.WaterMinutes, 1, 480);
+                    if (!Enum.IsDefined(s.Buddy)) s.Buddy = BuddyKind.Posture;
                     return s;
                 }
             }

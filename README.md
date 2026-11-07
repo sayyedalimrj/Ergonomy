@@ -47,3 +47,11 @@ Glassy here means a translucent gradient layered WPF dock with glowing highlight
 The app cannot detect whether a person is sitting correctly without sensors; posture check-ins are self-assessment prompts. The built-in guidance covers essential office-HSE topics but does not replace a site risk assessment or qualified HSE evaluation.
 
 See docs/ERGONOMICS-EVIDENCE.md and docs/OFFICE-HSE-CHECKLIST.md.
+
+## 0.3.0 release candidate
+
+Development branch: `feat/wellness-dock-v3`. See [CHANGELOG](CHANGELOG.md), [architecture](docs/ARCHITECTURE.md), [quality evidence](docs/QUALITY-REPORT.md) and [Windows pilot checklist](docs/WINDOWS-PILOT.md). This candidate extends v2; it is not a final desktop-validated release. Native transparency fallback, no Mica/Acrylic blur claim. Startup is now opt-in.
+
+Portable engine tests: `dotnet run --project tests/Ergonomy.EngineTests -c Release`.
+
+On Windows the published executable accepts `--self-test` and `--ui-self-test`; the latter renders WPF pages and all 28 buddy states to `ERGONOMY_UI_OUTPUT` if set. These are smoke checks, not user interaction or multi-monitor certification.

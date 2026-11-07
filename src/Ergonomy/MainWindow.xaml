@@ -1,7 +1,8 @@
 <Window x:Class="Ergonomy.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Ergonomy • Glass Dock"
+        xmlns:local="clr-namespace:Ergonomy"
+        Title="Ergonomy • Wellness Dock"
         Width="766" Height="92"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="NoResize" WindowStartupLocation="Manual"
@@ -40,6 +41,10 @@
               <Trigger Property="IsMouseOver" Value="True">
                 <Setter TargetName="Frame" Property="Background" Value="#50667F"/>
                 <Setter TargetName="Frame" Property="BorderBrush" Value="#AA91F5E7"/>
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="#FFFFFF"/>
+                <Setter TargetName="Frame" Property="BorderThickness" Value="2"/>
               </Trigger>
               <Trigger Property="IsPressed" Value="True">
                 <Setter TargetName="Frame" Property="Opacity" Value=".68"/>
@@ -102,39 +107,16 @@
         </Grid.RowDefinitions>
 
         <!-- Collapsed status dock: always visible, never requires setup. -->
-        <Grid Grid.Row="0" Margin="17,0" FlowDirection="LeftToRight">
+        <Grid Grid.Row="0" Margin="17,0" FlowDirection="LeftToRight" MouseLeftButtonDown="DragDock">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="54"/>
-            <ColumnDefinition Width="188"/>
+            <ColumnDefinition x:Name="BrandColumn" Width="188"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
-          <Border Width="43" Height="43" CornerRadius="16" Grid.Column="0"
-                  Background="{StaticResource AccentBrush}" HorizontalAlignment="Left">
-            <Grid>
-              <TextBlock Text="E" FontFamily="Segoe UI" FontWeight="Bold"
-                         FontSize="25" Foreground="#10192C" HorizontalAlignment="Center"
-                         VerticalAlignment="Center"/>
-              <Ellipse x:Name="PulseDot" Fill="#D7FFF0" Width="9" Height="9"
-                       HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-1,0">
-                <Ellipse.RenderTransform>
-                  <ScaleTransform CenterX=".5" CenterY=".5"/>
-                </Ellipse.RenderTransform>
-                <Ellipse.Triggers>
-                  <EventTrigger RoutedEvent="Loaded">
-                    <BeginStoryboard>
-                      <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                         From="1" To=".30" Duration="0:0:1.1"/>
-                      </Storyboard>
-                    </BeginStoryboard>
-                  </EventTrigger>
-                </Ellipse.Triggers>
-              </Ellipse>
-            </Grid>
-          </Border>
-          <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0">
+          <local:BuddyControl x:Name="DockBuddy" Width="56" Height="64" Grid.Column="0"/>
+          <StackPanel x:Name="BrandBlock" Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0">
             <TextBlock Text="Ergonomy" Foreground="#F4F9FF" FontSize="19"
                        FontWeight="Bold"/>
             <TextBlock Text="YOUR WELLNESS COMPANION" Foreground="#91AFCA"
@@ -151,12 +133,12 @@
           <Button x:Name="PauseButton" Grid.Column="3" Content="Ⅱ"
                   Style="{StaticResource GlassButton}" Width="46" Height="43"
                   Padding="0" FontSize="19" Margin="10,0,0,0"
-                  VerticalAlignment="Center" ToolTip="توقف موقت یک‌ساعته"
+                  VerticalAlignment="Center" AutomationProperties.Name="توقف یا ادامه یادآورها" ToolTip="توقف موقت یک‌ساعته"
                   Click="Pause_Click"/>
           <Button x:Name="ExpandButton" Grid.Column="4" Content="⌄"
                   Style="{StaticResource GlassButton}" Width="49" Height="43"
                   Padding="0" FontSize="25" Margin="9,0,0,0"
-                  VerticalAlignment="Center" ToolTip="بازکردن پنل ارگونومی"
+                  VerticalAlignment="Center" AutomationProperties.Name="باز و بسته کردن پنل" ToolTip="بازکردن پنل ارگونومی"
                   Click="Expand_Click"/>
         </Grid>
 
@@ -168,7 +150,7 @@
             <RowDefinition Height="Auto"/>
           </Grid.RowDefinitions>
 
-          <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+          <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
             <Button x:Name="TodayTab" Content="✦  امروز"
                     Style="{StaticResource NavButton}" Click="Today_Click" Margin="0,0,0,0"/>
             <Button x:Name="StandardsTab" Content="◈  استانداردها"
@@ -177,7 +159,7 @@
                     Style="{StaticResource NavButton}" Click="Desk_Click" Margin="10,0,0,0"/>
             <Button x:Name="InfoTab" Content="⚙  تنظیمات و حریم خصوصی"
                     Style="{StaticResource NavButton}" Click="Info_Click" Margin="10,0,0,0"/>
-          </StackPanel>
+          </WrapPanel>
 
           <Grid Grid.Row="1">
             <!-- Today: animated coaching, next reminder and quick actions -->
@@ -205,14 +187,7 @@
                       <TextBlock x:Name="TodayStatus" Text="برنامهٔ خودکار فعال است"
                                  Foreground="#8CF5DC" FontSize="13" FontWeight="SemiBold"/>
                     </StackPanel>
-                    <Grid Grid.Column="1" Width="102" Height="102"
-                          HorizontalAlignment="Center" VerticalAlignment="Center">
-                      <Ellipse Stroke="#365A7694" StrokeThickness="11"/>
-                      <Ellipse Stroke="{StaticResource AccentBrush}" StrokeThickness="11"
-                               StrokeDashArray="2.6 0.6" StrokeDashCap="Round"/>
-                      <TextBlock Text="✦" FontSize="34" Foreground="#BAEFFF"
-                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
+                    <local:BuddyControl x:Name="CoachBuddy" Grid.Column="1" Width="120" Height="120"/>
                   </Grid>
                 </Border>
 
@@ -230,6 +205,7 @@
                               Background="#3A8A7A" Click="Done_Click"/>
                       <Button x:Name="SnoozeButton" Content="۱۰ دقیقه بعد" Style="{StaticResource GlassButton}"
                               Click="Snooze_Click" Margin="9,0,0,0"/>
+                      <Button Content="رد کردن" Click="Skip_Click" Margin="9,0,0,0" Style="{StaticResource GlassButton}"/>
                       <Button x:Name="EyeCountdownButton" Content="شروع ۲۰ ثانیه"
                               Style="{StaticResource GlassButton}" Click="EyeCountdown_Click"
                               Margin="9,0,0,0" Visibility="Collapsed"/>
@@ -269,6 +245,7 @@
                   </Border>
                 </UniformGrid>
 
+                <TextBlock x:Name="ReminderCount" Text="هنوز یادآوری ثبت نشده" Foreground="#B8CCE4" Margin="0,0,0,12"/>
                 <TextBlock Text="تمرین فوری" Foreground="#ECF5FF" FontSize="16"
                            FontWeight="SemiBold" Margin="0,0,0,10"/>
                 <WrapPanel>
@@ -369,7 +346,31 @@
                   <StackPanel>
                     <TextBlock Text="ترجیحات ساده" FontSize="16" Foreground="White"
                                FontWeight="SemiBold" Margin="0,0,0,10"/>
-                    <CheckBox x:Name="RunOnStartup" Content="اجرای خودکار با ورود به ویندوز"
+                    <TextBlock Text="برنامهٔ خودکار" FontSize="18" Foreground="White" Margin="0,0,0,12"/>
+                <UniformGrid Columns="2" Margin="0,0,0,12">
+                  <CheckBox x:Name="EyeToggle" Content="چشم" Foreground="White"/>
+                  <TextBox x:Name="EyeInterval" AutomationProperties.Name="فاصله یادآور چشم به دقیقه" Margin="8,3"/>
+                  <CheckBox x:Name="PostureToggle" Content="نشستن" Foreground="White"/>
+                  <TextBox x:Name="PostureInterval" AutomationProperties.Name="فاصله یادآور نشستن به دقیقه" Margin="8,3"/>
+                  <CheckBox x:Name="MoveToggle" Content="حرکت" Foreground="White"/>
+                  <TextBox x:Name="MoveInterval" AutomationProperties.Name="فاصله یادآور حرکت به دقیقه" Margin="8,3"/>
+                  <TextBlock Text="آب (دقیقه)" Foreground="White"/>
+                  <TextBox x:Name="WaterInterval" AutomationProperties.Name="فاصله یادآور آب به دقیقه" Margin="8,3"/>
+                </UniformGrid>
+                <Button Content="ذخیرهٔ برنامه" Click="SaveSchedule_Click" Style="{StaticResource GlassButton}" Margin="0,0,0,16"/>
+                <TextBlock Text="همراه و حرکت" FontSize="18" Foreground="White" Margin="0,0,0,10"/>
+                <ComboBox x:Name="BuddyPicker" SelectedIndex="0" SelectionChanged="Buddy_Changed" Margin="0,0,0,12" AutomationProperties.Name="انتخاب کاراکتر">
+                  <ComboBoxItem Content="Posture Buddy · نشستن"/>
+                  <ComboBoxItem Content="Eye Guardian · چشم"/>
+                  <ComboBoxItem Content="Move Buddy · حرکت"/>
+                  <ComboBoxItem Content="Wellness Buddy · سلامت"/>
+                </ComboBox>
+                <CheckBox x:Name="MotionToggle" Content="فعال‌بودن انیمیشن‌ها" Foreground="White" Checked="Motion_Changed" Unchecked="Motion_Changed" Margin="0,4"/>
+                <CheckBox x:Name="ReducedToggle" Content="کاهش حرکت" Foreground="White" Checked="Motion_Changed" Unchecked="Motion_Changed" Margin="0,4,0,16"/>
+                <TextBlock Text="تاریخچهٔ محلی (حداکثر ۲۰۰ رویداد)" Foreground="White" FontSize="16" Margin="0,12"/>
+                <ListBox x:Name="HistoryList" MaxHeight="140" Background="#18263E" Foreground="White" AutomationProperties.Name="تاریخچه یادآورها"/>
+                <Button Content="پاک‌کردن تاریخچه" Click="ClearHistory_Click" Style="{StaticResource GlassButton}" Margin="0,8,0,16"/>
+                <CheckBox x:Name="RunOnStartup" Content="اجرای خودکار با ورود به ویندوز"
                               Checked="Preference_Changed" Unchecked="Preference_Changed"/>
                     <CheckBox x:Name="HydrationToggle" Content="یادآوری اختیاری نوشیدن آب (هر ۱۲۰ دقیقه)"
                               Checked="Preference_Changed" Unchecked="Preference_Changed"/>

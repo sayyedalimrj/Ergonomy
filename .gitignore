@@ -5,3 +5,5 @@
 *.suo
 release/
 publish/
+
+*_wpftmp.csproj

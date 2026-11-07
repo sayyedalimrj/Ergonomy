@@ -23,6 +23,11 @@ public partial class MainWindow : Window
     private bool _ready;
     private ReminderKind? _activeAlert;
     private int _eyeSeconds;
+    private bool _practice;
+    private bool _quietHidden;
+    private DateTimeOffset _alertStarted;
+    private DateTimeOffset _reactionUntil;
+    private readonly List<HistoryEntry> _history = HistoryStore.Load();
 
     private const double CompactHeight = 92;
 
@@ -42,7 +47,26 @@ public partial class MainWindow : Window
         GuideCount.Text = $"{HseCatalog.All.Count} راهنمای کاربردی از منابع معتبر";
         RunOnStartup.IsChecked = _settings.AutoStart;
         HydrationToggle.IsChecked = _settings.WaterEnabled;
+        EyeToggle.IsChecked = _settings.EyeEnabled;
+        PostureToggle.IsChecked = _settings.PostureEnabled;
+        MoveToggle.IsChecked = _settings.MoveEnabled;
+        EyeInterval.Text = _settings.EyeMinutes.ToString();
+        PostureInterval.Text = _settings.PostureMinutes.ToString();
+        MoveInterval.Text = _settings.MoveMinutes.ToString();
+        WaterInterval.Text = _settings.WaterMinutes.ToString();
+        BuddyPicker.SelectedIndex = (int)_settings.Buddy;
+        MotionToggle.IsChecked = _settings.AnimationsEnabled;
+        ReducedToggle.IsChecked = _settings.ReducedMotion;
+        HistoryList.ItemsSource = _history.AsEnumerable().Reverse().ToList();
         _ready = true;
+        ApplyBuddy();
+        ExpandedArea.PreviewMouseDown += (_, _) => WindowsEnvironment.SetInteractive(this, true);
+        SourceInitialized += (_, _) => WindowsEnvironment.SetNoActivate(this);
+        SizeChanged += (_, _) => {
+            BrandBlock.Visibility = ActualWidth < 650 ? Visibility.Collapsed : Visibility.Visible;
+            BrandColumn.Width = new GridLength(ActualWidth < 650 ? 0 : 188);
+        };
+        DpiChanged += (_, _) => WindowsEnvironment.ClampToMonitor(this);
 
         if (!diagnosticOnly)
         {
@@ -52,7 +76,9 @@ public partial class MainWindow : Window
             _uiTick.Start();
             Loaded += (_, _) =>
             {
-                PositionDock();
+                if (_settings.DockLeft is double left && _settings.DockTop is double top && double.IsFinite(left) && double.IsFinite(top))
+                { Left = left; Top = top; WindowsEnvironment.ClampToMonitor(this); }
+                else PositionDock();
                 UpdateStatus();
                 Diagnostics.Record("ui", "Dock loaded and visible.");
             };
@@ -71,10 +97,7 @@ public partial class MainWindow : Window
 
     private void PositionDock()
     {
-        // WPF WorkArea uses device independent pixels, just like WPF Window.
-        var area = SystemParameters.WorkArea;
-        Left = area.Left + Math.Max(0, (area.Width - Width) / 2);
-        Top = area.Top + 6;
+        WindowsEnvironment.ClampToMonitor(this, center: true);
     }
 
     private void InitTraySafely()
@@ -110,6 +133,16 @@ public partial class MainWindow : Window
     private void UpdateStatus()
     {
         if (!_ready) return;
+        var quiet = _engine.IsQuiet;
+        if (quiet && !_quietHidden) { _quietHidden = true; Hide(); }
+        else if (!quiet && _quietHidden) { _quietHidden = false; Show(); }
+        if (_activeAlert is ReminderKind timed && DateTimeOffset.UtcNow - _alertStarted > TimeSpan.FromSeconds(90))
+            CompleteAlert(timed, ReminderResponse.Dismissed);
+        var state = _activeAlert != null ? BuddyState.Reminder : _engine.IsPaused ? BuddyState.Snoozed : _engine.IsIdle ? BuddyState.Resting : BuddyState.Idle;
+        if (DateTimeOffset.UtcNow >= _reactionUntil) { DockBuddy.State = state; CoachBuddy.State = state; }
+        DockBuddy.Animate = CoachBuddy.Animate = _settings.AnimationsEnabled && !quiet && !_engine.IsIdle && !_engine.IsPaused;
+        DockBuddy.Refresh(); CoachBuddy.Refresh();
+        ReminderCount.Text = $"امروز: {_history.Count(x => x.Time.LocalDateTime.Date == DateTime.Today)} رویداد محلی";
         if (_engine.IsPaused)
         {
             NextReminderText.Text = "یادآورها موقتاً متوقف‌اند";
@@ -147,10 +180,12 @@ public partial class MainWindow : Window
     }
 
     private double ExpandedHeight =>
-        Math.Max(355, Math.Min(704, SystemParameters.WorkArea.Height - 30));
+        Math.Max(355, Math.Min(704, MaxHeight));
 
-    private void SetExpanded(bool expanded)
+    private void SetExpanded(bool expanded, bool interactive = true)
     {
+        if (!IsVisible && !_quietHidden) Show();
+        WindowsEnvironment.SetInteractive(this, expanded && interactive);
         if (_expanded == expanded) return;
         _expanded = expanded;
         if (expanded)
@@ -161,7 +196,7 @@ public partial class MainWindow : Window
         ExpandButton.Content = expanded ? "⌃" : "⌄";
         BeginAnimation(HeightProperty, null);
         var target = expanded ? ExpandedHeight : CompactHeight;
-        var animation = new DoubleAnimation(Height, target, TimeSpan.FromMilliseconds(390))
+        var animation = new DoubleAnimation(Height, target, TimeSpan.FromMilliseconds(_settings.ReducedMotion || !SystemParameters.ClientAreaAnimation ? 1 : 390))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
             FillBehavior = FillBehavior.Stop
@@ -169,13 +204,14 @@ public partial class MainWindow : Window
         animation.Completed += (_, _) =>
         {
             Height = target;
+            WindowsEnvironment.ClampToMonitor(this);
             if (!expanded && !_expanded) ExpandedArea.Visibility = Visibility.Collapsed;
         };
         BeginAnimation(HeightProperty, animation);
         if (expanded)
         {
             ExpandedArea.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1,
-                TimeSpan.FromMilliseconds(370)) { FillBehavior = FillBehavior.Stop });
+                TimeSpan.FromMilliseconds(_settings.ReducedMotion || !SystemParameters.ClientAreaAnimation ? 1 : 370)) { FillBehavior = FillBehavior.Stop });
             ExpandedArea.Opacity = 1;
         }
     }
@@ -231,10 +267,14 @@ public partial class MainWindow : Window
         catch (Exception ex) { Diagnostics.Record("open-source", ex); }
     }
 
-    private void ShowCoach(ReminderKind kind)
+    private void ShowCoach(ReminderKind kind, bool practice = false)
     {
         if (_activeAlert != null) return;
         _activeAlert = kind;
+        _practice = practice;
+        _alertStarted = DateTimeOffset.UtcNow;
+        CoachBuddy.Kind = kind switch { ReminderKind.Eye => BuddyKind.Eye, ReminderKind.Move => BuddyKind.Move, ReminderKind.Posture => BuddyKind.Posture, _ => BuddyKind.Wellness };
+        DockBuddy.State = CoachBuddy.State = BuddyState.Reminder;
         _eyeTimer.Stop();
         EyeCountdownButton.Visibility = kind == ReminderKind.Eye ? Visibility.Visible : Visibility.Collapsed;
         EyeCountdownButton.IsEnabled = true;
@@ -252,14 +292,23 @@ public partial class MainWindow : Window
         };
         ReminderBanner.Visibility = Visibility.Visible;
         SelectPage("today");
-        SetExpanded(true);
+        SetExpanded(true, interactive: practice);
         Diagnostics.Record("reminder", kind.ToString()); // only reminder type, no user activity history
     }
 
     private void CompleteAlert(ReminderKind kind, ReminderResponse response)
     {
         _eyeTimer.Stop();
-        _engine.Respond(kind, response);
+        _engine.Respond(kind, response, _practice);
+        if (!_practice)
+        {
+            _history.Add(new(DateTimeOffset.Now, kind, response));
+            if (_history.Count > 200) _history.RemoveAt(0);
+            try { HistoryStore.Save(_history); } catch (Exception ex) { Diagnostics.Record("history-save", ex); }
+            HistoryList.ItemsSource = _history.AsEnumerable().Reverse().ToList();
+        }
+        DockBuddy.State = CoachBuddy.State = response == ReminderResponse.Done ? BuddyState.Completed : response == ReminderResponse.Snooze ? BuddyState.Snoozed : BuddyState.Attention;
+        _reactionUntil = DateTimeOffset.UtcNow.AddSeconds(3);
         _activeAlert = null;
         ReminderBanner.Visibility = Visibility.Collapsed;
         if (response == ReminderResponse.Snooze) FooterText.Text = "یادآورها ۱۰ دقیقه به تعویق افتادند.";
@@ -304,7 +353,7 @@ public partial class MainWindow : Window
     private void ShowPractice(ReminderKind kind)
     {
         if (_activeAlert is ReminderKind current) CompleteAlert(current, ReminderResponse.Dismissed);
-        ShowCoach(kind);
+        ShowCoach(kind, practice: true);
     }
 
     private void Checklist_Changed(object sender, RoutedEventArgs e)
@@ -340,6 +389,110 @@ public partial class MainWindow : Window
         catch (Exception ex) { Diagnostics.Record("save-preferences", ex); }
         _engine.Configure(_settings);
         UpdateStatus();
+    }
+
+    public void RunUiSelfTest()
+    {
+        _settings.ReducedMotion = true;
+        ApplyBuddy();
+        WindowsEnvironment.ClampToMonitor(this, true);
+        Height = 704; Width = 766;
+        ExpandedArea.Visibility = Visibility.Visible;
+        ExpandedArea.Opacity = 1;
+        _expanded = true;
+        UpdateLayout();
+        var output = Environment.GetEnvironmentVariable("ERGONOMY_UI_OUTPUT");
+        void Capture(string name)
+        {
+            UpdateLayout();
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)ActualWidth, (int)ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+            bitmap.Render(this);
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                System.IO.Directory.CreateDirectory(output);
+                var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                using var file = System.IO.File.Create(System.IO.Path.Combine(output, name+".png"));
+                encoder.Save(file);
+            }
+        }
+        foreach(var page in new[]{"today", "standards", "desk", "info"})
+        { SelectPage(page); Capture(page); }
+        SelectPage("today");
+        foreach(var kind in Enum.GetValues<BuddyKind>())
+        foreach(var state in Enum.GetValues<BuddyState>())
+        { CoachBuddy.Kind=kind;CoachBuddy.State=state;CoachBuddy.InvalidateVisual();Capture(kind+"-"+state); }
+        if(ActualWidth<=0 || ActualHeight<=0 || HseCatalog.All.Count<15) throw new InvalidOperationException("Invalid visual layout.");
+        _engine.Dispose();
+        DockBuddy.Animate=CoachBuddy.Animate=false;DockBuddy.Refresh();CoachBuddy.Refresh();
+    }
+
+    private void SaveSchedule_Click(object sender, RoutedEventArgs e)
+    {
+        int Parse(System.Windows.Controls.TextBox input)
+        {
+            var value = string.Concat(input.Text.Trim().Select(c => char.GetNumericValue(c) is >= 0 and <= 9 ? ((int)char.GetNumericValue(c)).ToString() : c.ToString()));
+            if (!int.TryParse(value, out var n) || n is < 1 or > 480) throw new ArgumentException("فاصله‌ها باید بین ۱ تا ۴۸۰ دقیقه باشند.");
+            return n;
+        }
+        try
+        {
+            var eye=Parse(EyeInterval); var posture=Parse(PostureInterval); var move=Parse(MoveInterval); var water=Parse(WaterInterval);
+            _settings.EyeMinutes=eye; _settings.PostureMinutes=posture; _settings.MoveMinutes=move; _settings.WaterMinutes=water;
+            _settings.EyeEnabled=EyeToggle.IsChecked==true; _settings.PostureEnabled=PostureToggle.IsChecked==true; _settings.MoveEnabled=MoveToggle.IsChecked==true;
+            SettingsStore.Save(_settings); _engine.Configure(_settings);
+            FooterText.Text="برنامه ذخیره شد؛ زمان‌ها بر حسب دقیقهٔ فعالیت‌اند.";
+        }
+        catch(Exception ex) when(ex is ArgumentException or System.IO.IOException or UnauthorizedAccessException)
+        { FooterText.Text=ex.Message; }
+    }
+    private void ApplyBuddy()
+    {
+        DockBuddy.Kind = CoachBuddy.Kind = _settings.Buddy;
+        DockBuddy.ReducedMotion = CoachBuddy.ReducedMotion = _settings.ReducedMotion;
+        DockBuddy.Animate = CoachBuddy.Animate = _settings.AnimationsEnabled;
+        DockBuddy.Refresh(); CoachBuddy.Refresh();
+    }
+    private void Buddy_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready) return;
+        _settings.Buddy = (BuddyKind)Math.Clamp(BuddyPicker.SelectedIndex, 0, 3);
+        SaveMotion();
+    }
+    private void Motion_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_ready) return;
+        _settings.ReducedMotion = ReducedToggle.IsChecked == true;
+        _settings.AnimationsEnabled = MotionToggle.IsChecked == true;
+        SaveMotion();
+    }
+    private void SaveMotion()
+    {
+        ApplyBuddy();
+        try { SettingsStore.Save(_settings); } catch (Exception ex) { Diagnostics.Record("preferences", ex); }
+    }
+    private void Skip_Click(object sender, RoutedEventArgs e)
+    {
+        if (_activeAlert is ReminderKind kind) CompleteAlert(kind, ReminderResponse.Dismissed);
+    }
+    private void ClearHistory_Click(object sender, RoutedEventArgs e)
+    {
+        _history.Clear();
+        try { HistoryStore.Save(_history); } catch (Exception ex) { Diagnostics.Record("history-clear", ex); }
+        HistoryList.ItemsSource = _history.ToList();
+    }
+    private void DragDock(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject element)
+        {
+            for (DependencyObject? node = element; node != null; node = System.Windows.Media.VisualTreeHelper.GetParent(node))
+                if (node is Button) return;
+        }
+        if (e.ClickCount == 2) { SetExpanded(!_expanded); return; }
+        try { DragMove(); WindowsEnvironment.ClampToMonitor(this); }
+        catch (InvalidOperationException) { return; }
+        _settings.DockLeft = Left; _settings.DockTop = Top;
+        try { SettingsStore.Save(_settings); } catch (Exception ex) { Diagnostics.Record("dock-position", ex); }
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e) => ExitApp();

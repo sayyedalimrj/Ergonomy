@@ -36,8 +36,10 @@ public partial class App : System.Windows.Application
 
             if (e.Args.Any(x => x.Equals("--ui-self-test", StringComparison.OrdinalIgnoreCase)))
             {
-                _ = new MainWindow(diagnosticOnly: true);
-                Diagnostics.Record("ui-self-test", "PASS: WPF visual tree instantiated.");
+                var probe = new MainWindow(diagnosticOnly: true);
+                probe.Show();
+                probe.RunUiSelfTest();
+                Diagnostics.Record("ui-self-test", "PASS: shown, laid out, 28 character states rendered, pages and settings controls exercised.");
                 Shutdown(0);
                 return;
             }
