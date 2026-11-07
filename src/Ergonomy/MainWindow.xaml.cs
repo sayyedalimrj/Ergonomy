@@ -47,7 +47,7 @@ public partial class MainWindow : Window
         _engine=new ReminderEngine(_settings);
         _engine.ReminderDue+=kind=>ShowCoach(kind);
         _engine.CustomReminderDue+=custom=>ShowPersonal(custom);
-        ExercisesList.ItemsSource=ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water);
+        ExercisesList.ItemsSource=ExerciseCatalog.All;
         ExerciseFilter.SelectedIndex=0;
         SourceInitialized+=(_,_)=>{
             WindowsEnvironment.SetNoActivate(this);
@@ -133,10 +133,11 @@ public partial class MainWindow : Window
     private void Reveal(bool lesson,bool interactive=false,bool animate=true)
     {
         if(_quiet && !interactive)return;
+        bool entering=!_shown||!IsVisible;
         _transition++;
         _shown=true;_reveal.Reveal();UpdateEdgeHint();BodyScroll.ScrollToTop();
         LessonPanel.Visibility=lesson&&_lesson!=null&&!_quick&&!_about&&!_preferences&&!_library?Visibility.Visible:Visibility.Collapsed;
-        PersonalPanel.Visibility=_active==ReminderKind.Custom&&!_quick&&!_about&&!_preferences&&!_library?Visibility.Visible:Visibility.Collapsed;
+        PersonalPanel.Visibility=(_active is ReminderKind.Custom or ReminderKind.Posture or ReminderKind.Water)&&!_quick&&!_about&&!_preferences&&!_library?Visibility.Visible:Visibility.Collapsed;
         LibraryPanel.Visibility=_library?Visibility.Visible:Visibility.Collapsed;
         QuickActions.Visibility=_quick?Visibility.Visible:Visibility.Collapsed;
         AboutPanel.Visibility=_about?Visibility.Visible:Visibility.Collapsed;
@@ -144,14 +145,17 @@ public partial class MainWindow : Window
         PlusButton.Content=_quick?"×":"+";
         FitHeight();PositionCorner();
         WindowsEnvironment.SetInteractive(this,interactive);
+        bool soften=animate&&entering&&MotionAllowed;
+        BeginAnimation(LeftProperty,null);BeginAnimation(OpacityProperty,null);
+        Opacity=soften?0:1;
         if(!IsVisible)Show();
         SetMotion();UpdateNext();
-        BeginAnimation(LeftProperty,null);BeginAnimation(OpacityProperty,null);
-        Opacity=1;
-        if(animate && MotionAllowed)
+        if(soften)
         {
-            BeginAnimation(LeftProperty,new DoubleAnimation(_anchorLeft+Width+16,_anchorLeft,TimeSpan.FromMilliseconds(280)){EasingFunction=new CubicEase{EasingMode=EasingMode.EaseOut},FillBehavior=FillBehavior.Stop});
-            BeginAnimation(OpacityProperty,new DoubleAnimation(0,1,TimeSpan.FromMilliseconds(220)){FillBehavior=FillBehavior.Stop});
+            var duration=TimeSpan.FromMilliseconds(interactive?550:750);
+            BeginAnimation(LeftProperty,new DoubleAnimation(_anchorLeft+28,_anchorLeft,duration){EasingFunction=new SineEase{EasingMode=EasingMode.EaseInOut},FillBehavior=FillBehavior.Stop});
+            Opacity=1;
+            BeginAnimation(OpacityProperty,new DoubleAnimation(0,1,duration){EasingFunction=new SineEase{EasingMode=EasingMode.EaseInOut},FillBehavior=FillBehavior.Stop});
         }
     }
     private void FitHeight()
@@ -171,10 +175,10 @@ public partial class MainWindow : Window
         CoachBuddy.Animate=DockBuddy.Animate=false;CoachBuddy.Refresh();DockBuddy.Refresh();
         BeginAnimation(LeftProperty,null);BeginAnimation(OpacityProperty,null);
         if(immediate||!MotionAllowed||!IsVisible){Hide();Left=_anchorLeft;UpdateEdgeHint();return;}
-        var slide=new DoubleAnimation(Left,_anchorLeft+Width+16,TimeSpan.FromMilliseconds(220)){EasingFunction=new CubicEase{EasingMode=EasingMode.EaseIn},FillBehavior=FillBehavior.Stop};
+        var slide=new DoubleAnimation(Left,_anchorLeft+40,TimeSpan.FromMilliseconds(400)){EasingFunction=new SineEase{EasingMode=EasingMode.EaseInOut},FillBehavior=FillBehavior.Stop};
         slide.Completed+=(_,_)=>{if(transition==_transition){Hide();Left=_anchorLeft;UpdateEdgeHint();}};
         BeginAnimation(LeftProperty,slide);
-        BeginAnimation(OpacityProperty,new DoubleAnimation(1,0,TimeSpan.FromMilliseconds(180)){FillBehavior=FillBehavior.Stop});
+        BeginAnimation(OpacityProperty,new DoubleAnimation(1,0,TimeSpan.FromMilliseconds(400)){FillBehavior=FillBehavior.Stop});
     }
     private bool MotionAllowed=>_settings.AnimationsEnabled&&!_settings.ReducedMotion&&SystemParameters.ClientAreaAnimation;
     private void SetMotion()
@@ -182,7 +186,7 @@ public partial class MainWindow : Window
         DockBuddy.Kind=_settings.Buddy;
         DockBuddy.Animate=false; // no decorative motion while waiting
         CoachBuddy.ReducedMotion=_settings.ReducedMotion;
-        CoachBuddy.Animate=_shown&&!_quick&&!_about&&!_preferences&&!_library&&MotionAllowed&&!_quiet&&(_diagnosticOnly||!_engine.IsIdle)&&(_lesson?.Running??false);
+        CoachBuddy.Animate=_shown&&!_quick&&!_about&&!_preferences&&!_library&&MotionAllowed&&!_quiet&&(_diagnosticOnly||!_engine.IsIdle)&&(_lesson is {Running:true,StepComplete:false});
         DockBuddy.Refresh();CoachBuddy.Refresh();
     }
     private void Tick(object? sender,EventArgs e)
@@ -191,22 +195,32 @@ public partial class MainWindow : Window
         double elapsed=(now-_lastTick)/1000.0;_lastTick=now;
         if(elapsed>3)elapsed=0;
         _quiet=_engine.IsQuiet;
-        if(_active!=null&&!_quiet&&!_engine.IsIdle&&!_quick&&!_about&&!_preferences&&!_library)
+        AdvanceVisibleSession(elapsed);
+        SetMotion();UpdateNext();
+    }
+    private void AdvanceVisibleSession(double elapsed)
+    {
+        if(_active!=null&&_shown&&IsVisible&&!_quiet&&(_diagnosticOnly||!_engine.IsIdle)&&!_quick&&!_about&&!_preferences&&!_library)
         {
             _alertAge+=elapsed;
+            int previous=_lesson?.Index??-1;
             _lesson?.Advance(elapsed);
-            if(_alertAge>=180&&!IsMouseOver&&!IsKeyboardFocusWithin){Finish(ReminderResponse.Dismissed);return;}
+            if(_lesson is {AutoFinished:true}){Finish(ReminderResponse.TimedOut);return;}
+            if(_lesson!=null&&_lesson.Index!=previous){_alertAge=0;CoachBuddy.RestartPose();FitHeight();}
+            if(_lesson==null){
+                PromptTimeout.Text=$"جمع‌شدن خودکار تا {FaNumber(Math.Max(0,20-(int)_alertAge))} ثانیه";
+                if(_alertAge>=20){Finish(ReminderResponse.TimedOut);return;}
+            }
             UpdateLesson();
         }
-        SetMotion();UpdateNext();
     }
     private void UpdateNext()
     {
-        if(_active!=null){TitleText.Text=_promptText;NextText.Text="همراه تو، بدون عجله";return;}
+        if(_active!=null){TitleText.Text=_promptText;NextText.Text=_lesson==null?"یک یادآوری کوتاه":"آرام و بدون عجله";return;}
         TitleText.Text="همیار سلامت";
         if(_engine.IsPaused){NextText.Text="فعلاً استراحت";return;}
         var next=_engine.NextReminder;
-        NextText.Text=next is null?"همراه تو":$"{_engine.NextTitle} · {FaNumber(Math.Max(1,(int)Math.Ceiling(next.Value.Remaining.TotalMinutes)))} دقیقهٔ دیگر";
+        NextText.Text=next is null?"همراه سلامت شما":$"{_engine.NextTitle} · {FaNumber(Math.Max(1,(int)Math.Ceiling(next.Value.Remaining.TotalMinutes)))} دقیقهٔ دیگر";
     }
     private void ShowCoach(ReminderKind kind,bool practice=false)
     {
@@ -217,10 +231,21 @@ public partial class MainWindow : Window
         }
         _preferences=false;_quick=false;_about=false;_library=false;_active=kind;_practice=practice;_alertAge=0;_lastTick=Environment.TickCount64;
         _promptText=kind switch {
-            ReminderKind.Eye=>"چشم‌ها خسته نشده؟",
-            ReminderKind.Posture=>new[]{"درست نشستی؟","گردنت راحت است؟","شانه‌ها رهاست؟"}[_posturePrompt++%3],
-            ReminderKind.Move=>"وقت کمی حرکت",_=>"آب خوردی؟"
+            ReminderKind.Eye=>"زمان استراحت چشم",
+            ReminderKind.Posture=>"وضعیت نشستن",
+            ReminderKind.Move=>"چند دقیقه تغییر فعالیت",_=>"وقت نوشیدن آب"
         };
+        if(kind is ReminderKind.Posture or ReminderKind.Water)
+        {
+            _lesson=null;CoachBuddy.Lesson=null;
+            if(kind==ReminderKind.Posture){
+                var tips=new[]{("صاف و راحت بنشینید","کمرتان به پشتی صندلی تکیه داشته باشد و شانه‌ها را رها کنید؛ در یک حالت ثابت نمانید."),("گردن در راستای تنه","اگر به صفحه نزدیک شده‌اید، موقعیت مانیتور را تنظیم کنید تا سر رو به جلو خم نماند."),("شانه‌ها را رها کنید","آرنج‌ها را نزدیک بدن و موس را در دسترس قرار دهید؛ مچ‌ها در امتداد ساعد باشند."),("وضعیت پاها را بررسی کنید","کف پاها روی زمین یا زیرپایی قرار بگیرد؛ فضای زیر میز را برای حرکت پاها باز نگه دارید.")};
+                var tip=tips[_posturePrompt++%tips.Length];_promptText=tip.Item1;PersonalMessageText.Text=tip.Item2;
+            }else PersonalMessageText.Text="اگر مایلید، چند جرعه آب بنوشید.";
+            PromptArt.Kind=kind;PromptArt.InvalidateVisual();PromptArt.Visibility=Visibility.Visible;
+            PromptDoneButton.Content=kind==ReminderKind.Water?"نوشیدم ✓":"بررسی کردم ✓";
+            PromptTimeout.Text="جمع‌شدن خودکار تا ۲۰ ثانیه";Reveal(false,practice);return;
+        }
         _lesson=new ExerciseLesson(kind){Running=true};
         CoachBuddy.Lesson=_lesson;
         CoachBuddy.State=BuddyState.Reminder;
@@ -231,10 +256,11 @@ public partial class MainWindow : Window
     {
         if(_lesson==null)return;
         StepTitle.Text=_lesson.Current.Title;
-        StepHint.Text=_lesson.StepComplete?(_lesson.Finished?(_lesson.Kind==ReminderKind.Move?"اگر می‌توانی، ۵ تا ۱۰ دقیقه تغییر فعالیت بده":"اگر انجامش دادی، تأیید کن"):"آماده‌ای؟ حرکت بعدی را بزن"):_lesson.Current.Hint;
+        StepHint.Text=_lesson.StepComplete?(_lesson.IsLast?"تمرین به پایان رسید؛ اگر انجام دادید، تأیید کنید.":"اگر این حرکت را انجام دادید، تأیید کنید؛ حرکت بعدی خودکار نمایش داده می‌شود."):_lesson.Current.Hint;
         StepNumber.Text=$"{_lesson.Current.Group} · {FaNumber(_lesson.Index+1)} از {FaNumber(_lesson.Steps.Count)}";
         StepTitle.ToolTip="راهنمای حرکت: "+_lesson.Current.Source;
-        Countdown.Text=_lesson.StepComplete?"↻ تکرار":$"{FaNumber(_lesson.Remaining)} ثانیه {(_lesson.Running?"Ⅱ":"▶")}";
+        Countdown.Text=_lesson.StepComplete?$"{(_lesson.IsLast?"پایان":"بعدی")} · {FaNumber(_lesson.TransitionRemaining)} ثانیه {(_lesson.Running?"Ⅱ":"▶")}":$"{FaNumber(_lesson.Remaining)} ثانیه {(_lesson.Running?"Ⅱ":"▶")}";
+        DoneButton.Content=_lesson.IsLast?"پایان تمرین ✓":"انجام دادم؛ بعدی";
         double progress=100*_lesson.Progress,displayed=LessonProgress.Value;
         LessonProgress.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty,null);
         LessonProgress.Value=progress;
@@ -257,9 +283,12 @@ public partial class MainWindow : Window
     private void Timer_Click(object sender,RoutedEventArgs e)
     {
         if(_lesson==null)return;
-        if(_lesson.StepComplete){_lesson.Restart();CoachBuddy.RestartPose();}
-        else _lesson.Running=!_lesson.Running;
+        _lesson.Running=!_lesson.Running;
         _alertAge=0;_lastTick=Environment.TickCount64;UpdateLesson();SetMotion();
+    }
+    private void Repeat_Click(object sender,RoutedEventArgs e)
+    {
+        if(_lesson==null)return;_lesson.Restart();CoachBuddy.RestartPose();_alertAge=0;_lastTick=Environment.TickCount64;UpdateLesson();SetMotion();
     }
     private void Plus_Click(object sender,RoutedEventArgs e)
     {
@@ -289,7 +318,11 @@ public partial class MainWindow : Window
     }
     private void DismissActive(){if(_active!=null)Finish(ReminderResponse.Dismissed,hide:false);}
     private void Hide_Click(object sender,RoutedEventArgs e){DismissActive();_preferences=false;Conceal();}
-    private void Done_Click(object sender,RoutedEventArgs e)=>Finish(ReminderResponse.Done);
+    private void Done_Click(object sender,RoutedEventArgs e)
+    {
+        if(_lesson is {IsLast:false}){Next_Click(sender,e);return;}
+        Finish(ReminderResponse.Done);
+    }
     private void Snooze_Click(object sender,RoutedEventArgs e)=>Finish(ReminderResponse.Snooze);
     private void OpenPreferences()
     {
@@ -317,13 +350,13 @@ public partial class MainWindow : Window
             if(string.IsNullOrWhiteSpace(PersonalTitleInput.Text))throw new ArgumentException("عنوان یادآور را بنویس.");
             _draftCustom.Add(new(){Title=PersonalTitleInput.Text.Trim(),Message=PersonalMessageInput.Text.Trim(),Minutes=SettingsValidation.Minutes(PersonalMinutesInput.Text,1440)});
             PersonalRemindersList.ItemsSource=_draftCustom.ToList();PersonalTitleInput.Clear();PersonalMessageInput.Clear();
-            NewPersonalPanel.Visibility=Visibility.Collapsed;SettingsStatus.Text="به فهرست اضافه شد؛ برای ثبت، ذخیره را بزن.";FitHeight();BodyScroll.ScrollToEnd();
+            NewPersonalPanel.Visibility=Visibility.Collapsed;SettingsStatus.Text="به فهرست اضافه شد؛ برای ثبت، ذخیره را انتخاب کنید.";FitHeight();BodyScroll.ScrollToEnd();
         }
         catch(ArgumentException ex){SettingsStatus.Text=ex.Message;}
     }
     private void RemovePersonal_Click(object sender,RoutedEventArgs e)
     {
-        if(sender is Button b&&b.Tag is string id){_draftCustom.RemoveAll(x=>x.Id==id);PersonalRemindersList.ItemsSource=_draftCustom.ToList();SettingsStatus.Text="حذف شد؛ برای ثبت، ذخیره را بزن.";FitHeight();}
+        if(sender is Button b&&b.Tag is string id){_draftCustom.RemoveAll(x=>x.Id==id);PersonalRemindersList.ItemsSource=_draftCustom.ToList();SettingsStatus.Text="حذف شد؛ برای ثبت، ذخیره را انتخاب کنید.";FitHeight();}
     }
     private static bool HasInputErrors(DependencyObject root)
     {
@@ -345,7 +378,7 @@ public partial class MainWindow : Window
             candidate.ReducedMotion=!candidate.AnimationsEnabled;candidate.WaterEnabled=WaterToggle.IsChecked==true;
             SettingsStore.Save(candidate);_settings=candidate;if(!_diagnosticOnly)SettingsStore.EnsureStartup(_settings.AutoStart);_engine.Configure(_settings);_preferences=false;Conceal();
         }
-        catch(Exception ex)when(ex is ArgumentException or System.IO.IOException or UnauthorizedAccessException){Diagnostics.Record("settings",ex);SettingsStatus.Text=ex is ArgumentException?ex.Message:"ذخیره نشد؛ دوباره امتحان کن.";}
+        catch(Exception ex)when(ex is ArgumentException or System.IO.IOException or UnauthorizedAccessException){Diagnostics.Record("settings",ex);SettingsStatus.Text=ex is ArgumentException?ex.Message:"ذخیره نشد؛ دوباره تلاش کنید.";}
     }
     private void Library_Click(object sender,RoutedEventArgs e)=>OpenLibrary();
     private void OpenLibrary()
@@ -356,7 +389,7 @@ public partial class MainWindow : Window
     {
         if(ExercisesList==null)return;
         var group=(ExerciseFilter.SelectedItem as ListBoxItem)?.Content?.ToString()??"همه";
-        ExercisesList.ItemsSource=ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water&&(group=="همه"||x.Group==group)).ToList();
+        ExercisesList.ItemsSource=ExerciseCatalog.All.Where(x=>group=="همه"||x.Group==group).ToList();
         if(IsLoaded&&_library){BodyScroll.ScrollToTop();FitHeight();}
     }
     private void Exercise_Click(object sender,RoutedEventArgs e)
@@ -367,9 +400,9 @@ public partial class MainWindow : Window
     {
         ShowCoach(ReminderKind.Move,true);
         var group=(ExerciseFilter.SelectedItem as ListBoxItem)?.Content?.ToString()??"همه";
-        var library=ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water&&(group=="همه"||x.Group==group)).ToList();
+        var library=ExerciseCatalog.All.Where(x=>group=="همه"||x.Group==group).ToList();
         _lesson=new ExerciseLesson(ReminderKind.Move,library,library.FindIndex(x=>x.Motion==motion)){Running=true};
-        CoachBuddy.Lesson=_lesson;_promptText="تمرین آرام";UpdateLesson();Reveal(true,true,animate:false);
+        CoachBuddy.Lesson=_lesson;_promptText="راهنمای تمرین";UpdateLesson();Reveal(true,true,animate:false);
     }
     private void ShowPersonal(CustomReminder custom,bool practice=false)
     {
@@ -377,7 +410,8 @@ public partial class MainWindow : Window
         if(_active!=null)DismissActive();
         _active=ReminderKind.Custom;_practice=practice;_lesson=null;CoachBuddy.Lesson=null;
         _preferences=false;_quick=false;_about=false;_library=false;_alertAge=0;_lastTick=Environment.TickCount64;
-        _promptText=custom.Title;PersonalMessageText.Text=string.IsNullOrWhiteSpace(custom.Message)?custom.Title:custom.Message;Reveal(false,practice);
+        _promptText=custom.Title;PersonalMessageText.Text=string.IsNullOrWhiteSpace(custom.Message)?custom.Title:custom.Message;
+        PromptArt.Visibility=Visibility.Collapsed;PromptDoneButton.Content="انجام شد ✓";PromptTimeout.Text="جمع‌شدن خودکار تا ۲۰ ثانیه";Reveal(false,practice);
     }
     private void Details_Changed(object sender,RoutedEventArgs e)
     {
@@ -425,7 +459,13 @@ public partial class MainWindow : Window
         if(AuthorName.Text!="میرجعفری"||AuthorPhone.Text!="۰۹۱۸۶۴۴۱۸۰۱"||phoneBottom>ActualHeight-8||AuthorPhone.ActualHeight<=0)
             throw new InvalidOperationException("About attribution is clipped or missing.");
         _about=false;
-        foreach(var kind in new[]{ReminderKind.Eye,ReminderKind.Posture,ReminderKind.Move,ReminderKind.Water})
+        ShowCoach(ReminderKind.Posture,true);Capture("posture-reminder");
+        if(_lesson!=null||PersonalPanel.Visibility!=Visibility.Visible||PromptArt.Kind!=ReminderKind.Posture)throw new InvalidOperationException("Posture self-check was presented as an exercise.");
+        Finish(ReminderResponse.Done,hide:false);
+        ShowCoach(ReminderKind.Water,true);Capture("water-glass");
+        if(_lesson!=null||PromptArt.Kind!=ReminderKind.Water||PromptArt.Visibility!=Visibility.Visible)throw new InvalidOperationException("Water glass reminder missing.");
+        Finish(ReminderResponse.Done,hide:false);
+        foreach(var kind in new[]{ReminderKind.Eye,ReminderKind.Move})
         {
             ShowCoach(kind,true);
             for(int i=0;i<_lesson!.Steps.Count;i++)
@@ -447,6 +487,29 @@ public partial class MainWindow : Window
         Timer_Click(this,new RoutedEventArgs());
         if(_lesson.Running)throw new InvalidOperationException("Pause did not stop timer.");
         Timer_Click(this,new RoutedEventArgs());Finish(ReminderResponse.Done,hide:false);
+        ShowCoach(ReminderKind.Eye,true);
+        for(int i=0;i<5;i++)AdvanceVisibleSession(1);
+        Capture("auto-next-countdown");
+        if(_lesson is not {Index:0,StepComplete:true,TransitionRemaining:4})throw new InvalidOperationException("Four-second transition did not start.");
+        Timer_Click(this,new RoutedEventArgs());AdvanceVisibleSession(3);
+        if(_lesson.TransitionRemaining!=4)throw new InvalidOperationException("Paused transition did not freeze.");
+        Timer_Click(this,new RoutedEventArgs());
+        for(int i=0;i<3;i++)AdvanceVisibleSession(1);
+        if(_lesson.Index!=0)throw new InvalidOperationException("Automatic transition happened early.");
+        AdvanceVisibleSession(1);
+        if(_lesson.Index!=1||_lesson.Remaining!=20)throw new InvalidOperationException("Next exercise did not get a fresh timer.");
+        for(int i=0;i<20;i++)AdvanceVisibleSession(1);Capture("final-countdown");
+        for(int i=0;i<4;i++)AdvanceVisibleSession(1);
+        if(_active==null)throw new InvalidOperationException("Final card closed before five seconds.");
+        AdvanceVisibleSession(1);
+        if(_active!=null)throw new InvalidOperationException("Final automatic timeout did not close the session.");
+        ShowCoach(ReminderKind.Eye,true);Done_Click(this,new RoutedEventArgs());
+        if(_lesson?.Index!=1)throw new InvalidOperationException("Per-step Done did not advance.");
+        Done_Click(this,new RoutedEventArgs());
+        if(_active!=null)throw new InvalidOperationException("Final explicit Done did not close.");
+        int historyBefore=_history.Count;ShowCoach(ReminderKind.Water);
+        for(int i=0;i<20;i++)AdvanceVisibleSession(1);
+        if(_active!=null||_history.Count!=historyBefore+1||_history.Last().Response!=ReminderResponse.TimedOut)throw new InvalidOperationException("Timeout falsely recorded completion or failed to close.");
         OpenLibrary();Capture("exercise-library");
         int VisibleScrollbars(DependencyObject root)
         {
@@ -455,7 +518,7 @@ public partial class MainWindow : Window
             return count;
         }
         if(VisibleScrollbars(BodyScroll)!=1)throw new InvalidOperationException("Library should have one scroll surface.");
-        if(ExercisesList.Items.Count!=19)throw new InvalidOperationException("Movement catalog is incomplete.");
+        if(ExercisesList.Items.Count!=20)throw new InvalidOperationException("Movement catalog is incomplete.");
         if(ExerciseFilter.Items.Count!=7)throw new InvalidOperationException("Movement filter chips missing.");
         ExerciseFilter.SelectedIndex=1;
         if(ExercisesList.Items.Count!=2)throw new InvalidOperationException("Eye movement filter did not apply.");
@@ -466,7 +529,7 @@ public partial class MainWindow : Window
         Capture("workstation-check");CheckFeet.IsChecked=false;
         if(WorkstationStatus.Text!="۴ از ۵ مورد بررسی شد")throw new InvalidOperationException("Workstation unchecked tally failed.");
         WorkstationDetails.IsExpanded=false;
-        foreach(var exercise in ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water))
+        foreach(var exercise in ExerciseCatalog.All)
         {
             ShowExercise(exercise.Motion);Capture("catalog-"+exercise.Motion);Finish(ReminderResponse.Done,hide:false);
         }
@@ -526,6 +589,22 @@ public partial class MainWindow : Window
         {
             ShowExercise(ExerciseMotion.NeckLeft);SetMotion();Capture("neck-neutral");Pump(2400);Capture("neck-hold");
             if(CoachBuddy.AnimationClock<2)throw new InvalidOperationException("Held neck coaching did not animate.");
+        }
+        ShowCoach(ReminderKind.Eye,true);
+        var shortSteps=ExerciseCatalog.Routine(ReminderKind.Eye).Select(x=>x with{Seconds=1}).ToList();
+        _lesson=new ExerciseLesson(ReminderKind.Eye,shortSteps){Running=true};CoachBuddy.Lesson=_lesson;
+        _lastTick=Environment.TickCount64;_tick.Start();
+        try{Pump(6200);}finally{_tick.Stop();}
+        if(_lesson?.Index!=1)throw new InvalidOperationException("Real dispatcher timer did not advance after the four-second grace.");
+        _lesson=new ExerciseLesson(ReminderKind.Eye,[shortSteps[1]]){Running=true};CoachBuddy.Lesson=_lesson;_lastTick=Environment.TickCount64;_tick.Start();
+        try{Pump(6500);}finally{_tick.Stop();}
+        if(_active!=null)throw new InvalidOperationException("Real dispatcher timer did not close the last card after five seconds.");
+        Diagnostics.Record("timed-session-test","PASS: actual dispatcher timers exercised 4-second next and 5-second final closure; no automatic user confirmation.");
+        Finish(ReminderResponse.Dismissed,hide:false);Conceal(immediate:true);Reveal(false,animate:true);
+        if(SystemParameters.ClientAreaAnimation){
+            if(Opacity>.1)throw new InvalidOperationException("Entry flashed at full opacity.");
+            Pump(240);if(Opacity<=0||Opacity>=1)throw new InvalidOperationException("Gentle fade did not run progressively.");
+            Pump(600);if(Opacity<.99)throw new InvalidOperationException("Gentle fade did not finish.");
         }
         Conceal(immediate:true);double stopped=CoachBuddy.AnimationClock;
         Pump(250);

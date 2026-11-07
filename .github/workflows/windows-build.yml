@@ -1,7 +1,7 @@
 name: Windows wellness build
 on:
   push:
-    branches: [main, feat/windows-hse-mvp, feat/glass-dock-v2, feat/polish-v7]
+    branches: [main, feat/windows-hse-mvp, feat/glass-dock-v2, feat/review-v8]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -79,7 +79,7 @@ jobs:
           Copy-Item docs release/Ergonomy-win-x64/docs -Recurse
           Copy-Item scripts/Install-Ergonomy.ps1,scripts/Uninstall-Ergonomy.ps1,scripts/Test-ErgonomyPilot.ps1 release/Ergonomy-win-x64/
           Copy-Item README.md,CHANGELOG.md release/Ergonomy-win-x64/
-          Compress-Archive release/Ergonomy-win-x64/* release/Ergonomy-0.7.0-rc.1-win-x64.zip
+          Compress-Archive release/Ergonomy-win-x64/* release/Ergonomy-0.8.0-rc.1-win-x64.zip
       - name: User-level installer
         shell: pwsh
         run: |
@@ -90,7 +90,7 @@ jobs:
       - name: Install, test installed executable and uninstall
         shell: pwsh
         run: |
-          $setup = Join-Path $PWD 'release/Ergonomy-0.7.0-rc.1-setup-x64.exe'
+          $setup = Join-Path $PWD 'release/Ergonomy-0.8.0-rc.1-setup-x64.exe'
           $target = Join-Path $env:RUNNER_TEMP 'Ergonomy-installed-smoke'
           $proc = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"$target`"" -Wait -PassThru
           if ($proc.ExitCode -ne 0) { throw "Setup failed: $($proc.ExitCode)" }
@@ -101,10 +101,6 @@ jobs:
           $uninstall = Join-Path $target 'unins000.exe'
           $remove = Start-Process -FilePath $uninstall -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
           if ($remove.ExitCode -ne 0 -or (Test-Path $installed)) { throw 'Uninstall failed' }
-      - name: Checksums
-        shell: pwsh
-        run: |
-          Get-ChildItem release -File | ForEach-Object { $h=Get-FileHash $_.FullName -Algorithm SHA256; "$($h.Hash.ToLower())  $($_.Name)" } | Set-Content release/SHA256SUMS.txt
       - name: Collect diagnostics
         if: always()
         shell: pwsh
@@ -118,16 +114,23 @@ jobs:
               Copy-Item $_.FullName (Join-Path 'test-evidence' ('selftest-' + $_.Directory.Parent.Name + '.log'))
             }
           }
+      - name: Reviewer evidence bundle
+        shell: pwsh
+        run: Compress-Archive test-evidence/* release/Ergonomy-0.8.0-review-evidence.zip
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release -File | ForEach-Object { $h=Get-FileHash $_.FullName -Algorithm SHA256; "$($h.Hash.ToLower())  $($_.Name)" } | Set-Content release/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ergonomy-0.7.0-rc.1-windows-evidence
+          name: Ergonomy-0.8.0-rc.1-windows-evidence
           path: |
             release/*.*
             test-evidence/
           if-no-files-found: error
   prerelease:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/polish-v7'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/review-v8'
     needs: windows
     runs-on: ubuntu-latest
     permissions:
@@ -136,19 +139,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: Ergonomy-0.7.0-rc.1-windows-evidence
+          name: Ergonomy-0.8.0-rc.1-windows-evidence
           path: artifacts
       - name: Publish candidate, never label desktop pilot passed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          current_head=$(git ls-remote origin refs/heads/feat/polish-v7 | cut -f1)
+          current_head=$(git ls-remote origin refs/heads/feat/review-v8 | cut -f1)
           if [ "$current_head" != "$GITHUB_SHA" ]; then
             echo 'A newer candidate exists; skip publishing this obsolete build.'
             exit 0
           fi
-          candidate_tag="v0.7.0-rc.1-${GITHUB_SHA:0:7}"
+          candidate_tag="v0.8.0-rc.1-${GITHUB_SHA:0:7}"
           if ! gh release view "$candidate_tag" >/dev/null 2>&1; then
-            gh release create "$candidate_tag" --target "$GITHUB_SHA" --prerelease --title "همیار سلامت ۰٫۷ (${GITHUB_SHA:0:7}) — Windows pilot required" --notes-file docs/RELEASE-NOTES.md
+            gh release create "$candidate_tag" --target "$GITHUB_SHA" --prerelease --title "همیار سلامت ۰٫۸ (${GITHUB_SHA:0:7}) — Windows pilot required" --notes-file docs/RELEASE-NOTES.md
           fi
           gh release upload "$candidate_tag" artifacts/release/* --clobber

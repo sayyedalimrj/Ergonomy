@@ -5,7 +5,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <Version>0.7.0</Version>
+    <Version>0.8.0</Version>
     <AssemblyTitle>همیار سلامت</AssemblyTitle><Product>همیار سلامت</Product><Company>میرجعفری</Company>
     <ApplicationIcon>Assets/AppIcon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
