@@ -49,7 +49,7 @@ public partial class App : System.Windows.Application
                 var probe = new MainWindow(diagnosticOnly: true);
                 probe.Show();
                 probe.RunUiSelfTest();
-                Diagnostics.Record("ui-self-test", "PASS: hidden host, physical side-edge pointer reveal, compact layout, embedded Yekan glyphs, manual step timers/navigation, three quick buttons, About, settings and conceal exercised.");
+                Diagnostics.Record("ui-self-test", "PASS: hidden host, physical side-edge pointer reveal, compact layout, embedded Yekan glyphs, catalog rendering, personal reminder CRUD, timer persistence, edge cue, icon, Persian About and movement navigation exercised.");
                 Shutdown(0);
                 return;
             }
@@ -66,8 +66,8 @@ public partial class App : System.Windows.Application
         {
             Diagnostics.Record("startup-failure", ex);
             if (!e.Args.Any(x => x.Contains("self-test", StringComparison.OrdinalIgnoreCase)))
-                MessageBox.Show("Ergonomy could not start. A detailed log was written to:\n" + Diagnostics.LogPath +
-                "\n\n" + ex.Message, "Ergonomy startup", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("همیار سلامت اجرا نشد. گزارش خطا در این مسیر است:\n" + Diagnostics.LogPath +
+                "\n\n" + ex.Message, "اجرای همیار سلامت", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }
@@ -78,9 +78,9 @@ public partial class App : System.Windows.Application
         e.Handled = true;
         try
         {
-            MessageBox.Show("A problem occurred in Ergonomy. Diagnostic log:\n" +
+            MessageBox.Show("خطایی در همیار سلامت رخ داد. مسیر گزارش:\n" +
                 Diagnostics.LogPath + "\n\n" + e.Exception.Message,
-                "Ergonomy", MessageBoxButton.OK, MessageBoxImage.Error);
+                "همیار سلامت", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally { Shutdown(1); }
     }

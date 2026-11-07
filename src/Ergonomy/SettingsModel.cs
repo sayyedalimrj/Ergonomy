@@ -10,6 +10,7 @@ public sealed class AppSettings
     public int PostureMinutes { get; set; } = 30;
     public int MoveMinutes { get; set; } = 55;
     public int WaterMinutes { get; set; } = 120;
+    public List<CustomReminder> CustomReminders { get; set; }=[];
     public bool AutoStart { get; set; }
     public bool ReducedMotion { get; set; }
     public bool AnimationsEnabled { get; set; } = true;

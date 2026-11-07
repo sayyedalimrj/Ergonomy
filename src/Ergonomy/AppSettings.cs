@@ -24,6 +24,7 @@ public static class SettingsStore
                     s.MoveMinutes = Math.Clamp(s.MoveMinutes, 1, 480);
                     s.WaterMinutes = Math.Clamp(s.WaterMinutes, 1, 480);
                     if (!Enum.IsDefined(s.Buddy)) s.Buddy = BuddyKind.Posture;
+                    SettingsValidation.Normalize(s);
                     return s;
                 }
             }
@@ -35,6 +36,7 @@ public static class SettingsStore
 
     public static void Save(AppSettings settings)
     {
+        SettingsValidation.Validate(settings);
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
         var temp = SettingsPath + ".tmp";
         File.WriteAllText(temp, JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
