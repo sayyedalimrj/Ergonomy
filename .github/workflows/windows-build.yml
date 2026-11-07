@@ -81,7 +81,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view v0.3.0-rc.1 >/dev/null 2>&1; then
-            gh release create v0.3.0-rc.1 --target "$GITHUB_SHA" --prerelease --title 'Ergonomy 0.3.0 RC1 — Windows pilot required' --notes-file docs/RELEASE-NOTES.md
+          current_head=$(git ls-remote origin refs/heads/feat/wellness-dock-v3 | cut -f1)
+          if [ "$current_head" != "$GITHUB_SHA" ]; then
+            echo 'A newer candidate exists; skip publishing this obsolete build.'
+            exit 0
           fi
-          gh release upload v0.3.0-rc.1 artifacts/release/* --clobber
+          candidate_tag="v0.3.0-rc.1-${GITHUB_SHA:0:7}"
+          if ! gh release view "$candidate_tag" >/dev/null 2>&1; then
+            gh release create "$candidate_tag" --target "$GITHUB_SHA" --prerelease --title "Ergonomy 0.3.0 RC1 (${GITHUB_SHA:0:7}) — Windows pilot required" --notes-file docs/RELEASE-NOTES.md
+          fi
+          gh release upload "$candidate_tag" artifacts/release/* --clobber

@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private ReminderKind? _activeAlert;
     private int _eyeSeconds;
     private bool _practice;
+    private readonly bool _diagnosticOnly;
     private bool _quietHidden;
     private DateTimeOffset _alertStarted;
     private DateTimeOffset _reactionUntil;
@@ -33,6 +34,7 @@ public partial class MainWindow : Window
 
     public MainWindow(bool diagnosticOnly = false)
     {
+        _diagnosticOnly = diagnosticOnly;
         InitializeComponent();
         _settings = SettingsStore.Load();
         _engine = new ReminderEngine(_settings);
@@ -133,7 +135,7 @@ public partial class MainWindow : Window
     private void UpdateStatus()
     {
         if (!_ready) return;
-        var quiet = _engine.IsQuiet;
+        var quiet = !_diagnosticOnly && _engine.IsQuiet;
         if (quiet && !_quietHidden) { _quietHidden = true; Hide(); }
         else if (!quiet && _quietHidden) { _quietHidden = false; Show(); }
         if (_activeAlert is ReminderKind timed && DateTimeOffset.UtcNow - _alertStarted > TimeSpan.FromSeconds(90))
@@ -425,6 +427,20 @@ public partial class MainWindow : Window
         foreach(var state in Enum.GetValues<BuddyState>())
         { CoachBuddy.Kind=kind;CoachBuddy.State=state;CoachBuddy.InvalidateVisual();Capture(kind+"-"+state); }
         if(ActualWidth<=0 || ActualHeight<=0 || HseCatalog.All.Count<15) throw new InvalidOperationException("Invalid visual layout.");
+        foreach(var reminder in Enum.GetValues<ReminderKind>())
+        {
+            ShowPractice(reminder);
+            if(ReminderBanner.Visibility != Visibility.Visible) throw new InvalidOperationException("Reminder banner not visible.");
+            Capture("reminder-"+reminder);
+            if(reminder == ReminderKind.Eye)
+            {
+                EyeCountdown_Click(this, new RoutedEventArgs());
+                for(var i=0;i<20;i++) EyeTick(this,EventArgs.Empty);
+                if(_eyeSeconds!=0) throw new InvalidOperationException("Eye countdown failed.");
+            }
+            CompleteAlert(reminder, ReminderResponse.Done);
+            if(ReminderBanner.Visibility != Visibility.Collapsed) throw new InvalidOperationException("Reminder action failed.");
+        }
         _engine.Dispose();
         DockBuddy.Animate=CoachBuddy.Animate=false;DockBuddy.Refresh();CoachBuddy.Refresh();
     }

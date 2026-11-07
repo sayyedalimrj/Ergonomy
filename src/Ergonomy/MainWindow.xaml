@@ -10,6 +10,22 @@
         FontFamily="Segoe UI" UseLayoutRounding="True"
         SnapsToDevicePixels="True">
   <Window.Resources>
+    <Style TargetType="CheckBox">
+      <Setter Property="Foreground" Value="#EFF8FF"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Margin" Value="0,5"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="#22324C"/>
+      <Setter Property="Foreground" Value="#F2FCFF"/>
+      <Setter Property="CaretBrush" Value="#6FE5D0"/>
+      <Setter Property="BorderBrush" Value="#7B92AE"/>
+      <Setter Property="Padding" Value="10,6"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="MinHeight" Value="34"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
     <LinearGradientBrush x:Key="GlassBase" StartPoint="0,0" EndPoint="1,1">
       <GradientStop Color="#F0162238" Offset="0"/>
       <GradientStop Color="#F0111930" Offset=".55"/>

@@ -21,6 +21,10 @@
 | Higgsfield | Model catalog checked; AutoSprite requires a source image; no generated sprite integrated or claimed |
 | Runway | Authentication failed: revoked token (401); no output generated or claimed |
 
+## Windows render review
+
+Downloaded Windows CI evidence and inspected real WPF renders of Today, Guides, Desk and Settings. Found default black checkbox labels against a dark surface and tiny white interval fields; fixed with implicit accessible foreground/field styles before candidate handoff. This is a visual render review, not an interactive desktop audit. Release tags include the source commit to keep downloads traceable and prevent stale jobs overwriting a newer candidate.
+
 ## Not verified here
 
 No interactive Windows desktop is available on the Linux host. Real focus, overlay clicks, tray robustness, multi-monitor/mixed-DPI, lock/suspend/resume, long-run CPU/RAM/leaks, Narrator/high contrast and real meeting behavior require WINDOWS-PILOT.md. CI render smoke cannot certify those. No hidden employee monitoring, health diagnosis or posture detection. No native Mica blur, light theme, provider-specific meeting presence or code-signing certificate.

@@ -4,7 +4,7 @@ A Persian/RTL, offline Windows 11 x64 wellness assistant built with WPF/.NET 10.
 
 ## Download and run
 
-Download the installer or portable ZIP from [Releases](https://github.com/sayyedalimrj/Ergonomy/releases/tag/v0.3.0-rc.1) once the Windows build is green. Check `SHA256SUMS.txt` if verifying integrity. Both packages are unsigned.
+Download the installer or portable ZIP from [Releases](https://github.com/sayyedalimrj/Ergonomy/releases) once the Windows build is green. Check `SHA256SUMS.txt` if verifying integrity. Both packages are unsigned.
 
 - Installer: `Ergonomy-0.3.0-rc.1-setup-x64.exe`, installs for your user without Administrator.
 - Portable: extract `Ergonomy-0.3.0-rc.1-win-x64.zip`, then run `Ergonomy.exe`. No separate .NET installation needed.
