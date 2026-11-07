@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0-rc.1 — 2026-11-07
+
+- Right-edge hover and horizontal reveal/retreat, clear of title-bar controls.
+- + quick menu with exactly three actions and requested Mirjafari About attribution.
+- Independent per-movement timers, explicit Previous/Next, pause/resume and repeat.
+- Articulated elbow/knee/foot motion, eased standing and frozen paused poses.
+- Short sitting/neck/shoulder prompts, optional water retained, Persian countdown digits.
+- 40 behavioral assertions plus expanded Windows render/interaction/lifecycle/package smoke.
+
+
 ## 0.4.0-rc.1 — 2026-11-07
 
 - Fully concealed top-right hover/dwell/retreat; small 320-DIP coaching card.

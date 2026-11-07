@@ -1,7 +1,9 @@
-Ergonomy 0.4 RC — Minimal Corner
+Ergonomy 0.5 RC — Right Edge
 
-A fully concealed top-right assistant that reveals on corner hover or reminder. Smaller coaching cards, two response buttons, short Persian instructions, embedded IRANYekanX, Windows 11 native backdrop request with a contrast fallback, and staged eye/body demonstrations.
+The dock now reveals and retreats horizontally at the RIGHT edge, below title-bar controls. Hover briefly on the right edge near the upper part of the desktop; the top-right close corner no longer activates it.
 
-Download the unsigned per-user installer or extract the portable ZIP and run Ergonomy.exe. No separate .NET/font installation or internet is needed. Exit your previous Ergonomy instance from the tray first. Move the pointer to the very top-right of the work area and pause briefly to reveal the pill. Practice and three simple preferences are available from the tray.
++ opens three quick actions (Eye, Body, About). Every exercise has its own timer and Previous/Next controls; reaching zero waits for Next. Click the countdown to pause/resume or repeat. Stronger articulated walking and eased standing preserve the minimal glass UI and embedded Yekan font.
 
-Read docs/MINIMAL-CORNER-V4.md and WINDOWS-PILOT.md. CI exercises hidden/hover behavior, Persian font glyphs, instructional poses, reminder controls, normal process lifecycle, settings/history, package installation and removal. Physical Windows 11 mixed-DPI/monitor/fullscreen/blur/accessibility and long-run resource checks still require a desktop pilot. No posture detection, medical diagnosis or code signing is claimed.
+Short sitting/neck/shoulder reminders reuse the existing automatic cycle; optional water is retained in tray settings. About includes Mirjafari and 09186441801 as requested.
+
+Exit the previous Ergonomy from its tray before installing. The per-user setup and portable ZIP are unsigned. No separate font/.NET install or internet is required. See docs/RIGHT-EDGE-V5.md for tests and remaining physical Windows 11 pilot scope.

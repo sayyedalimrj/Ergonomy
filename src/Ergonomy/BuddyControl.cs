@@ -37,6 +37,7 @@ public sealed class BuddyControl : FrameworkElement
         get=>_lesson;
         set { _lesson=value;_phase=0;_lessonStep=-1;InvalidateVisual(); }
     }
+    public void RestartPose(){_phase=0;_lessonStep=-1;Refresh();}
     public bool ReducedMotion { get; set; }
     public bool Animate { get; set; } = true;
     public BuddyControl()
@@ -99,7 +100,7 @@ public sealed class BuddyControl : FrameworkElement
         var mint=Make("#83E8D0");var purple=Make("#C5B2FF");var blue=Make("#94C4FF");
         var skin=Make("#F6D5BA");var ink=Make("#172940");var white=Make("#EDF7FF");
         var accent=lesson.Kind==ReminderKind.Eye?mint:lesson.Kind==ReminderKind.Posture?purple:blue;
-        var moving=Animate&&!ReducedMotion&&SystemParameters.ClientAreaAnimation&&lesson.Running;
+        var moving=!ReducedMotion&&SystemParameters.ClientAreaAnimation;
         double phase=moving?_phase:0;
         int stage=lesson.Index;
         if(_lessonStep!=stage){_lessonStep=stage;_phase=0;phase=0;}
@@ -135,7 +136,8 @@ public sealed class BuddyControl : FrameworkElement
             // Side-view chair and articulated hip/knee/ankle geometry makes sitting/standing legible.
             var chair=new Pen(Make("#6A8297"),5){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round};
             if(posture||stage==0){dc.DrawLine(chair,new Point(99,69),new Point(99,114));dc.DrawLine(chair,new Point(99,111),new Point(144,111));dc.DrawLine(chair,new Point(113,112),new Point(106,147));}
-            double stand=standing?(stage==0?(moving?Math.Clamp(phase/6,0,1):.65):1):0;
+            double t=lesson.StepComplete?1:moving?Math.Clamp(phase/lesson.Current.Seconds,0,1):Math.Max(.65,lesson.Progress);
+            double stand=standing?(stage==0?t*t*(3-2*t):1):0;
             var hip=new Point(128,104-stand*18);
             var shoulder=new Point(126+(posture&&stage==1?(moving?Math.Sin(phase*.9)*3:0):0),65-stand*11);
             double shoulderDrop=posture&&stage==0?(moving?(Math.Sin(phase*1.1)+1)*2:3):0;
@@ -148,8 +150,8 @@ public sealed class BuddyControl : FrameworkElement
             if(standing&&stage==1)
             {
                 double stride=moving?Math.Sin(phase*3):.65;
-                knee.X=hip.X+stride*16;knee.Y=114;ankle.X=hip.X+stride*29;
-                farKnee.X=hip.X-stride*16;farKnee.Y=114;farAnkle.X=hip.X-stride*29;
+                knee.X=hip.X+stride*16;knee.Y=116-Math.Max(0,stride)*9;ankle.X=hip.X+stride*29;ankle.Y=144-Math.Max(0,stride)*5;
+                farKnee.X=hip.X-stride*16;farKnee.Y=116-Math.Max(0,-stride)*9;farAnkle.X=hip.X-stride*29;farAnkle.Y=144-Math.Max(0,-stride)*5;
                 wrist=new Point(shoulder.X-stride*26,94);farWrist=new Point(shoulder.X+stride*26,94);
                 dc.DrawLine(new Pen(Make("#769EAA"),1),new Point(67,150),new Point(212,150));
                 Arrow(dc,new Point(182,130),new Point(220,130),blue);
@@ -168,9 +170,11 @@ public sealed class BuddyControl : FrameworkElement
             dc.DrawLine(leg,hip,farKnee);dc.DrawLine(leg,farKnee,farAnkle);
             dc.DrawLine(leg,hip,knee);dc.DrawLine(leg,knee,ankle);
             dc.DrawLine(new Pen(white,6){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},ankle,new Point(ankle.X+13,ankle.Y));
-            dc.DrawLine(arm,shoulder,farWrist);
+            var farElbow=new Point(shoulder.X+(farWrist.X-shoulder.X)*.55-4,shoulder.Y+(farWrist.Y-shoulder.Y)*.6+5);
+            dc.DrawLine(arm,shoulder,farElbow);dc.DrawLine(arm,farElbow,farWrist);
             dc.DrawLine(body,shoulder,hip);
-            dc.DrawLine(arm,shoulder,wrist);dc.DrawEllipse(skin,null,wrist,5,5);
+            var elbow=new Point(shoulder.X+(wrist.X-shoulder.X)*.55+4,shoulder.Y+(wrist.Y-shoulder.Y)*.6+5);
+            dc.DrawLine(arm,shoulder,elbow);dc.DrawLine(arm,elbow,wrist);dc.DrawEllipse(skin,null,wrist,5,5);
             dc.DrawEllipse(skin,null,head,16,19);
             dc.DrawEllipse(ink,null,new Point(head.X+6,head.Y-2),2,2);
             dc.DrawEllipse(ink,null,new Point(head.X+1,head.Y-12),13,7);
