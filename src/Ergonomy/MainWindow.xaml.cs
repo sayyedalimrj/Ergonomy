@@ -79,7 +79,7 @@ public partial class MainWindow : Window
         {
             _tray=new WinForms.NotifyIcon{Icon=System.Drawing.SystemIcons.Application,Text="Ergonomy · گوشهٔ آرام",Visible=true};
             var menu=new WinForms.ContextMenuStrip();
-            menu.Items.Add("نمایش",null,(_,_)=>Dispatcher.BeginInvoke((Action)(()=>Reveal(false,true))));
+            menu.Items.Add("نمایش",null,(_,_)=>Dispatcher.BeginInvoke((Action)(()=>Reveal(_active!=null,true))));
             menu.Items.Add("تمرین چشم",null,(_,_)=>Dispatcher.BeginInvoke((Action)(()=>ShowCoach(ReminderKind.Eye,true))));
             menu.Items.Add("تمرین بدن",null,(_,_)=>Dispatcher.BeginInvoke((Action)(()=>ShowCoach(ReminderKind.Move,true))));
             menu.Items.Add("توقف / ادامه",null,(_,_)=>Dispatcher.BeginInvoke((Action)(()=>{
@@ -89,7 +89,7 @@ public partial class MainWindow : Window
             menu.Items.Add("تنظیمات",null,(_,_)=>Dispatcher.BeginInvoke((Action)OpenPreferences));
             menu.Items.Add("خروج",null,(_,_)=>Dispatcher.BeginInvoke((Action)ExitApp));
             _tray.ContextMenuStrip=menu;
-            _tray.DoubleClick+=(_,_)=>Dispatcher.BeginInvoke((Action)(()=>Reveal(false,true)));
+            _tray.DoubleClick+=(_,_)=>Dispatcher.BeginInvoke((Action)(()=>Reveal(_active!=null,true)));
         }
         catch(Exception ex){Diagnostics.Record("tray",ex);}
     }
@@ -112,7 +112,7 @@ public partial class MainWindow : Window
         QuickActions.Visibility=_quick?Visibility.Visible:Visibility.Collapsed;
         AboutPanel.Visibility=_about?Visibility.Visible:Visibility.Collapsed;
         PreferencesPanel.Visibility=_preferences?Visibility.Visible:Visibility.Collapsed;
-        PlusButton.Content=_quick?"−":"+";
+        PlusButton.Content=_quick?"×":"+";
         FitHeight();PositionCorner();
         WindowsEnvironment.SetInteractive(this,interactive);
         if(!IsVisible)Show();
@@ -127,7 +127,10 @@ public partial class MainWindow : Window
     }
     private void FitHeight()
     {
-        Glass.Measure(new Size(320,double.PositiveInfinity));
+        LessonPanel.InvalidateMeasure();PreferencesPanel.InvalidateMeasure();
+        QuickActions.InvalidateMeasure();AboutPanel.InvalidateMeasure();Glass.InvalidateMeasure();
+        UpdateLayout();
+        Glass.Measure(new Size(Width,double.PositiveInfinity));
         Height=Math.Min(MaxHeight>0 && double.IsFinite(MaxHeight)?MaxHeight:600,Math.Max(76,Glass.DesiredSize.Height));
     }
     private void Conceal(bool immediate=false)
@@ -301,7 +304,11 @@ public partial class MainWindow : Window
         if(Width>320||Height>90)throw new InvalidOperationException("Hover pill too large.");
         Plus_Click(this,new RoutedEventArgs());Capture("quick-actions");
         if(QuickActions.Children.Count!=3)throw new InvalidOperationException("Quick menu must have exactly three buttons.");
-        About_Click(this,new RoutedEventArgs());Capture("about");_about=false;
+        About_Click(this,new RoutedEventArgs());Capture("about");
+        var phoneBottom=AuthorPhone.TranslatePoint(new System.Windows.Point(0,AuthorPhone.ActualHeight),this).Y;
+        if(AuthorName.Text!="Mirjafari"||AuthorPhone.Text!="09186441801"||phoneBottom>ActualHeight-8||AuthorPhone.ActualHeight<=0)
+            throw new InvalidOperationException("About attribution is clipped or missing.");
+        _about=false;
         foreach(var kind in Enum.GetValues<ReminderKind>())
         {
             ShowCoach(kind,true);

@@ -48,8 +48,8 @@
    <StackPanel x:Name="AboutPanel" Grid.Row="1" Visibility="Collapsed" Margin="0,10,0,10">
     <TextBlock Text="Ergonomy" FontSize="21" FontWeight="Bold" HorizontalAlignment="Center"/>
     <TextBlock Text="طراحی و توسعه" Foreground="#BBD5E2" HorizontalAlignment="Center" FontSize="11" Margin="0,8,0,4"/>
-    <TextBlock Text="Mirjafari" FlowDirection="LeftToRight" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center"/>
-    <TextBlock Text="09186441801" FlowDirection="LeftToRight" FontSize="16" Foreground="#83E8D0" HorizontalAlignment="Center" Margin="0,8,0,10"/>
+    <TextBlock x:Name="AuthorName" Text="Mirjafari" FlowDirection="LeftToRight" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center"/>
+    <TextBlock x:Name="AuthorPhone" Text="09186441801" FlowDirection="LeftToRight" FontSize="16" Foreground="#83E8D0" HorizontalAlignment="Center" Margin="0,8,0,10"/>
     <TextBlock Text="نسخهٔ ۰٫۵ · همراه آرام روز کاری" Foreground="#BBD5E2" FontSize="10" HorizontalAlignment="Center"/>
    </StackPanel>
    <StackPanel x:Name="LessonPanel" Grid.Row="1" Visibility="Collapsed">
