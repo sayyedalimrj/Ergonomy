@@ -15,8 +15,18 @@ public sealed class BuddyControl : FrameworkElement
 {
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(83) };
     private double _phase;
-    public BuddyKind Kind { get; set; }
-    public BuddyState State { get; set; }
+    private BuddyKind _kind;
+    private BuddyState _state;
+    public BuddyKind Kind
+    {
+        get => _kind;
+        set { if (_kind != value) { _kind = value; InvalidateVisual(); } }
+    }
+    public BuddyState State
+    {
+        get => _state;
+        set { if (_state != value) { _state = value; InvalidateVisual(); } }
+    }
     public bool ReducedMotion { get; set; }
     public bool Animate { get; set; } = true;
     public BuddyControl()
