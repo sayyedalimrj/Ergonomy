@@ -194,8 +194,11 @@ public partial class MainWindow : Window
         long now=Environment.TickCount64;
         double elapsed=(now-_lastTick)/1000.0;_lastTick=now;
         if(elapsed>3)elapsed=0;
-        _quiet=_engine.IsQuiet;
+        // Diagnostic windows use a controlled quiet policy, like PointerTick; the
+        // disposable runner's shell notification state must not pause timer tests.
+        _quiet=!_diagnosticOnly&&_engine.IsQuiet;
         AdvanceVisibleSession(elapsed);
+        if(_diagnosticOnly)Diagnostics.Record("dispatcher-test",$"Elapsed={elapsed:F3};Quiet={_quiet};Shown={_shown};Visible={IsVisible};Index={_lesson?.Index};StepComplete={_lesson?.StepComplete};Grace={_lesson?.TransitionElapsed:F3}");
         SetMotion();UpdateNext();
     }
     private void AdvanceVisibleSession(double elapsed)

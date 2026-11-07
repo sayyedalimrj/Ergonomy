@@ -227,8 +227,9 @@ public sealed class BuddyControl : FrameworkElement
             if(!left)dc.PushTransform(new ScaleTransform(-1,1,138,0));
             // Left arm crosses the chest; the right hand supports below its elbow.
             le=new Point(126+18*q,86);lh=new Point(133+35*q,75);re=new Point(174,101);rh=new Point(le.X,le.Y+6);
-            Line(dc,accent,8,ls,le);Line(dc,accent,8,le,lh);dc.DrawEllipse(skin,null,lh,5,5);
-            Line(dc,accent,8,rs,re);Line(dc,accent,8,re,rh);dc.DrawEllipse(skin,null,rh,5,5);
+            var crossing=Make("#9DDAD6");var supporting=Make("#9ABAF2");
+            Line(dc,crossing,8,ls,le);Line(dc,crossing,8,le,lh);dc.DrawEllipse(skin,null,lh,5,5);
+            Line(dc,supporting,8,rs,re);Line(dc,supporting,8,re,rh);dc.DrawEllipse(skin,null,rh,5,5);
             if(!left)dc.Pop();Label(dc,left?"بازوی چپ":"بازوی راست",215,129,mint,10);
         }else{
             Line(dc,accent,8,ls,le);Line(dc,accent,8,le,lh);Line(dc,accent,8,rs,re);Line(dc,accent,8,re,rh);dc.DrawEllipse(skin,null,lh,5,5);dc.DrawEllipse(skin,null,rh,5,5);
