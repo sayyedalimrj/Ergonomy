@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+ <ItemGroup>
+  <Compile Include="../../src/Ergonomy/WellnessSchedule.cs" Link="WellnessSchedule.cs"/>
+  <Compile Include="../../src/Ergonomy/SettingsModel.cs" Link="SettingsModel.cs"/>
+  <Compile Include="../../src/Ergonomy/BuddyTypes.cs" Link="BuddyTypes.cs"/>
+ </ItemGroup>
+</Project>

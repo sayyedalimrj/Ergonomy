@@ -1,0 +1,127 @@
+name: Windows wellness build
+on:
+  push:
+    branches: [main, feat/windows-hse-mvp, feat/glass-dock-v2, feat/wellness-dock-v3]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Behavioral schedule tests
+        run: dotnet run --project tests/Ergonomy.EngineTests -c Release
+      - name: Build
+        run: dotnet build src/Ergonomy/Ergonomy.csproj -c Release
+      - name: Publish standalone x64
+        run: dotnet publish src/Ergonomy/Ergonomy.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o release/Ergonomy-win-x64
+      - name: Published startup and rendered WPF smoke
+        shell: pwsh
+        env:
+          ERGONOMY_UI_OUTPUT: ${{ github.workspace }}\test-evidence\ui
+        run: |
+          $testExe = Join-Path $PWD 'release\Ergonomy-win-x64\Ergonomy.exe'
+          foreach ($mode in @('--self-test', '--ui-self-test')) {
+            $proc = Start-Process -FilePath $testExe -ArgumentList $mode -PassThru
+            if (!$proc.WaitForExit(90000)) { $proc.Kill(); throw "Timeout: $mode" }
+            if ($proc.ExitCode -ne 0) { throw "$mode exited $($proc.ExitCode)" }
+          }
+      - name: Normal tray and timer lifecycle smoke
+        shell: pwsh
+        run: |
+          $testExe = Join-Path $PWD 'release/Ergonomy-win-x64/Ergonomy.exe'
+          $proc = Start-Process -FilePath $testExe -PassThru
+          $samples = @()
+          try {
+            for ($i=0; $i -lt 10; $i++) {
+              Start-Sleep -Seconds 2
+              $proc.Refresh()
+              if ($proc.HasExited) { throw "Normal application exited unexpectedly: $($proc.ExitCode)" }
+              $samples += [pscustomobject]@{Seconds=($i+1)*2;CPUSeconds=$proc.TotalProcessorTime.TotalSeconds;PrivateBytes=$proc.PrivateMemorySize64;WorkingSetBytes=$proc.WorkingSet64;Handles=$proc.HandleCount}
+            }
+            New-Item -ItemType Directory -Force test-evidence | Out-Null
+            $samples | Export-Csv test-evidence/lifecycle-resources.csv -NoTypeInformation
+            $log = Get-Content (Join-Path $env:LOCALAPPDATA 'Ergonomy/logs/app.log') -Raw
+            if ($log -notmatch 'Dock loaded and visible' -or $log -notmatch 'startup') { throw 'Normal startup did not finish' }
+          } finally {
+            if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
+      - name: Bundle docs and user installation scripts
+        shell: pwsh
+        run: |
+          Copy-Item docs release/Ergonomy-win-x64/docs -Recurse
+          Copy-Item scripts/Install-Ergonomy.ps1,scripts/Uninstall-Ergonomy.ps1,scripts/Test-ErgonomyPilot.ps1 release/Ergonomy-win-x64/
+          Copy-Item README.md,CHANGELOG.md release/Ergonomy-win-x64/
+          Compress-Archive release/Ergonomy-win-x64/* release/Ergonomy-0.3.0-rc.1-win-x64.zip
+      - name: User-level installer
+        shell: pwsh
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (!(Test-Path $iscc)) { throw 'Inno Setup is missing from this runner.' }
+          & $iscc packaging/Ergonomy.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+      - name: Install, test installed executable and uninstall
+        shell: pwsh
+        run: |
+          $setup = Join-Path $PWD 'release/Ergonomy-0.3.0-rc.1-setup-x64.exe'
+          $target = Join-Path $env:RUNNER_TEMP 'Ergonomy-installed-smoke'
+          $proc = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"$target`"" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Setup failed: $($proc.ExitCode)" }
+          $installed = Join-Path $target 'Ergonomy.exe'
+          if (!(Test-Path $installed)) { throw 'Installed executable missing' }
+          $probe = Start-Process -FilePath $installed -ArgumentList '--self-test' -Wait -PassThru
+          if ($probe.ExitCode -ne 0) { throw 'Installed executable startup test failed' }
+          $uninstall = Join-Path $target 'unins000.exe'
+          $remove = Start-Process -FilePath $uninstall -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          if ($remove.ExitCode -ne 0 -or (Test-Path $installed)) { throw 'Uninstall failed' }
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release -File | ForEach-Object { $h=Get-FileHash $_.FullName -Algorithm SHA256; "$($h.Hash.ToLower())  $($_.Name)" } | Set-Content release/SHA256SUMS.txt
+      - name: Collect diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force test-evidence | Out-Null
+          $logs = Join-Path $env:LOCALAPPDATA 'Ergonomy/logs'
+          if (Test-Path $logs) { Copy-Item $logs test-evidence/logs -Recurse -Force }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Ergonomy-0.3.0-rc.1-windows-evidence
+          path: |
+            release/*.*
+            test-evidence/
+          if-no-files-found: error
+  prerelease:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/wellness-dock-v3'
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Ergonomy-0.3.0-rc.1-windows-evidence
+          path: artifacts
+      - name: Publish candidate, never label desktop pilot passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_head=$(git ls-remote origin refs/heads/feat/wellness-dock-v3 | cut -f1)
+          if [ "$current_head" != "$GITHUB_SHA" ]; then
+            echo 'A newer candidate exists; skip publishing this obsolete build.'
+            exit 0
+          fi
+          candidate_tag="v0.3.0-rc.1-${GITHUB_SHA:0:7}"
+          if ! gh release view "$candidate_tag" >/dev/null 2>&1; then
+            gh release create "$candidate_tag" --target "$GITHUB_SHA" --prerelease --title "Ergonomy 0.3.0 RC1 (${GITHUB_SHA:0:7}) — Windows pilot required" --notes-file docs/RELEASE-NOTES.md
+          fi
+          gh release upload "$candidate_tag" artifacts/release/* --clobber

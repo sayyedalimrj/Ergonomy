@@ -1,0 +1,421 @@
+<Window x:Class="Ergonomy.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Ergonomy"
+        Title="Ergonomy • Wellness Dock"
+        Width="766" Height="92"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" WindowStartupLocation="Manual"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        FontFamily="Segoe UI" UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+  <Window.Resources>
+    <Style TargetType="CheckBox">
+      <Setter Property="Foreground" Value="#EFF8FF"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Margin" Value="0,5"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="#22324C"/>
+      <Setter Property="Foreground" Value="#F2FCFF"/>
+      <Setter Property="CaretBrush" Value="#6FE5D0"/>
+      <Setter Property="BorderBrush" Value="#7B92AE"/>
+      <Setter Property="Padding" Value="10,6"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="MinHeight" Value="34"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <LinearGradientBrush x:Key="GlassBase" StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Color="#F0162238" Offset="0"/>
+      <GradientStop Color="#F0111930" Offset=".55"/>
+      <GradientStop Color="#F0231C40" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="AccentBrush" StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Color="#64E6C8" Offset="0"/>
+      <GradientStop Color="#6CA7FF" Offset=".55"/>
+      <GradientStop Color="#C68EFF" Offset="1"/>
+    </LinearGradientBrush>
+    <Style x:Key="GlassButton" TargetType="Button">
+      <Setter Property="Foreground" Value="#EFF8FF"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Padding" Value="14,8"/>
+      <Setter Property="Background" Value="#334057"/>
+      <Setter Property="BorderBrush" Value="#446D83A1"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Frame" CornerRadius="16" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Margin="{TemplateBinding Padding}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Frame" Property="Background" Value="#50667F"/>
+                <Setter TargetName="Frame" Property="BorderBrush" Value="#AA91F5E7"/>
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="#FFFFFF"/>
+                <Setter TargetName="Frame" Property="BorderThickness" Value="2"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Frame" Property="Opacity" Value=".68"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="NavButton" BasedOn="{StaticResource GlassButton}" TargetType="Button">
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="Padding" Value="18,10"/>
+      <Setter Property="Background" Value="#1722343F"/>
+      <Setter Property="BorderBrush" Value="#33445764"/>
+    </Style>
+    <Style x:Key="GuideCard" TargetType="Border">
+      <Setter Property="Margin" Value="0,0,0,11"/>
+      <Setter Property="Padding" Value="15"/>
+      <Setter Property="Background" Value="#3A23334C"/>
+      <Setter Property="BorderBrush" Value="#476D86A4"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="17"/>
+    </Style>
+    <DataTemplate x:Key="GuideTemplate">
+      <Border Style="{StaticResource GuideCard}" FlowDirection="RightToLeft">
+        <StackPanel>
+          <DockPanel LastChildFill="True">
+            <Border DockPanel.Dock="Left" Background="#443D75A0" CornerRadius="10" Padding="10,4">
+              <TextBlock Text="{Binding Group}" Foreground="#9BEFE5" FontSize="11"/>
+            </Border>
+            <TextBlock Text="{Binding Name}" Foreground="White" FontSize="16"
+                       FontWeight="SemiBold" Margin="12,0,0,0"/>
+          </DockPanel>
+          <TextBlock Text="{Binding ShortDescription}" Foreground="#D8E7F4"
+                     FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0"/>
+          <TextBlock Text="{Binding Action}" Foreground="#AAC0D3"
+                     FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+          <DockPanel Margin="0,12,0,0">
+            <TextBlock Text="{Binding Source}" Foreground="#8EA7C5" FontSize="11"
+                       VerticalAlignment="Center"/>
+            <Button DockPanel.Dock="Left" Content="↗ منبع معتبر" Style="{StaticResource GlassButton}"
+                    FontSize="11" Padding="10,5" Tag="{Binding Url}" Click="Source_Click"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </Window.Resources>
+
+  <Grid ClipToBounds="False">
+    <Border x:Name="Shell" Margin="10,6,10,8"
+            Background="{StaticResource GlassBase}"
+            BorderBrush="#A78297B4" BorderThickness="1.1" CornerRadius="26">
+      <Border.Effect>
+        <DropShadowEffect Color="#060E22" BlurRadius="27" ShadowDepth="8" Opacity=".7"/>
+      </Border.Effect>
+      <Grid ClipToBounds="True">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="76"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Collapsed status dock: always visible, never requires setup. -->
+        <Grid Grid.Row="0" Margin="17,0" FlowDirection="LeftToRight" MouseLeftButtonDown="DragDock">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="54"/>
+            <ColumnDefinition x:Name="BrandColumn" Width="188"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+          <local:BuddyControl x:Name="DockBuddy" Width="56" Height="64" Grid.Column="0"/>
+          <StackPanel x:Name="BrandBlock" Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0">
+            <TextBlock Text="Ergonomy" Foreground="#F4F9FF" FontSize="19"
+                       FontWeight="Bold"/>
+            <TextBlock Text="YOUR WELLNESS COMPANION" Foreground="#91AFCA"
+                       FontSize="9" FontWeight="SemiBold" Margin="0,2,0,0"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2" VerticalAlignment="Center" FlowDirection="RightToLeft">
+            <TextBlock x:Name="NextReminderText" Text="در حال تنظیم یادآورها..."
+                       FontSize="14" Foreground="#D6F7FF" FontWeight="SemiBold"
+                       HorizontalAlignment="Right"/>
+            <TextBlock x:Name="ModeText" Text="مراقبت خودکار فعال است"
+                       FontSize="11" Foreground="#94AEC7" Margin="0,4,0,0"
+                       HorizontalAlignment="Right"/>
+          </StackPanel>
+          <Button x:Name="PauseButton" Grid.Column="3" Content="Ⅱ"
+                  Style="{StaticResource GlassButton}" Width="46" Height="43"
+                  Padding="0" FontSize="19" Margin="10,0,0,0"
+                  VerticalAlignment="Center" AutomationProperties.Name="توقف یا ادامه یادآورها" ToolTip="توقف موقت یک‌ساعته"
+                  Click="Pause_Click"/>
+          <Button x:Name="ExpandButton" Grid.Column="4" Content="⌄"
+                  Style="{StaticResource GlassButton}" Width="49" Height="43"
+                  Padding="0" FontSize="25" Margin="9,0,0,0"
+                  VerticalAlignment="Center" AutomationProperties.Name="باز و بسته کردن پنل" ToolTip="بازکردن پنل ارگونومی"
+                  Click="Expand_Click"/>
+        </Grid>
+
+        <Grid x:Name="ExpandedArea" Grid.Row="1" Margin="22,0,22,18"
+              Visibility="Collapsed" FlowDirection="RightToLeft">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+
+          <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+            <Button x:Name="TodayTab" Content="✦  امروز"
+                    Style="{StaticResource NavButton}" Click="Today_Click" Margin="0,0,0,0"/>
+            <Button x:Name="StandardsTab" Content="◈  استانداردها"
+                    Style="{StaticResource NavButton}" Click="Standards_Click" Margin="10,0,0,0"/>
+            <Button x:Name="DeskTab" Content="▣  میز من"
+                    Style="{StaticResource NavButton}" Click="Desk_Click" Margin="10,0,0,0"/>
+            <Button x:Name="InfoTab" Content="⚙  تنظیمات و حریم خصوصی"
+                    Style="{StaticResource NavButton}" Click="Info_Click" Margin="10,0,0,0"/>
+          </WrapPanel>
+
+          <Grid Grid.Row="1">
+            <!-- Today: animated coaching, next reminder and quick actions -->
+            <ScrollViewer x:Name="TodayPage" VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+                <Border CornerRadius="20" Padding="19" BorderThickness="1"
+                        BorderBrush="#496B849B" Margin="0,0,0,14">
+                  <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                      <GradientStop Color="#70456983" Offset="0"/>
+                      <GradientStop Color="#50332A64" Offset="1"/>
+                    </LinearGradientBrush>
+                  </Border.Background>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="125"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="هر حرکت کوچک، یک قدم برای سلامت بیشتر" Foreground="#F2FCFF"
+                                 FontWeight="Bold" FontSize="19" TextWrapping="Wrap"/>
+                      <TextBlock Text="ارگونومی درست یعنی تنظیم محیط و تغییر منظم وضعیت؛ نه یک حالت اجباری و ثابت."
+                                 Foreground="#C6D7EA" FontSize="12" Margin="0,11,0,12"
+                                 TextWrapping="Wrap"/>
+                      <TextBlock x:Name="TodayStatus" Text="برنامهٔ خودکار فعال است"
+                                 Foreground="#8CF5DC" FontSize="13" FontWeight="SemiBold"/>
+                    </StackPanel>
+                    <local:BuddyControl x:Name="CoachBuddy" Grid.Column="1" Width="120" Height="120"/>
+                  </Grid>
+                </Border>
+
+                <Border x:Name="ReminderBanner" Background="#813D3C71"
+                        BorderBrush="#A998B5FC" BorderThickness="1"
+                        CornerRadius="19" Padding="17" Margin="0,0,0,14"
+                        Visibility="Collapsed">
+                  <StackPanel>
+                    <TextBlock x:Name="ReminderTitle" Foreground="#CBF9EE" FontSize="19"
+                               FontWeight="Bold" Text="وقت یک استراحت کوتاه رسیده"/>
+                    <TextBlock x:Name="ReminderDetails" Foreground="White"
+                               FontSize="13" TextWrapping="Wrap" Margin="0,9,0,12"/>
+                    <StackPanel Orientation="Horizontal">
+                      <Button x:Name="DoneButton" Content="انجام شد ✓" Style="{StaticResource GlassButton}"
+                              Background="#3A8A7A" Click="Done_Click"/>
+                      <Button x:Name="SnoozeButton" Content="۱۰ دقیقه بعد" Style="{StaticResource GlassButton}"
+                              Click="Snooze_Click" Margin="9,0,0,0"/>
+                      <Button Content="رد کردن" Click="Skip_Click" Margin="9,0,0,0" Style="{StaticResource GlassButton}"/>
+                      <Button x:Name="EyeCountdownButton" Content="شروع ۲۰ ثانیه"
+                              Style="{StaticResource GlassButton}" Click="EyeCountdown_Click"
+                              Margin="9,0,0,0" Visibility="Collapsed"/>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <TextBlock Text="ریتم سالم کار" Foreground="#EAF5FF" FontSize="16"
+                           FontWeight="SemiBold" Margin="0,1,0,10"/>
+                <UniformGrid Columns="3" Margin="0,0,0,14">
+                  <Border Style="{StaticResource GuideCard}" Margin="0,0,5,0">
+                    <StackPanel>
+                      <TextBlock Text="◉" Foreground="#8CF3E0" FontSize="27"/>
+                      <TextBlock Text="چشم‌ها" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,6"/>
+                      <TextBlock Text="هر ۲۰ دقیقه" Foreground="#90F3E6" FontSize="13"/>
+                      <TextBlock Text="نگاه دور برای ۲۰ ثانیه" Foreground="#AFC4D6"
+                                 FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+                  </Border>
+                  <Border Style="{StaticResource GuideCard}" Margin="5,0,5,0">
+                    <StackPanel>
+                      <TextBlock Text="◈" Foreground="#B79BFF" FontSize="27"/>
+                      <TextBlock Text="نشستن" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,6"/>
+                      <TextBlock Text="هر ۳۰ دقیقه" Foreground="#C5ACFF" FontSize="13"/>
+                      <TextBlock Text="بررسی و تغییر وضعیت" Foreground="#AFC4D6"
+                                 FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+                  </Border>
+                  <Border Style="{StaticResource GuideCard}" Margin="5,0,0,0">
+                    <StackPanel>
+                      <TextBlock Text="↗" Foreground="#F7BC82" FontSize="27"/>
+                      <TextBlock Text="حرکت" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,6"/>
+                      <TextBlock Text="حدود ۵۵ دقیقه" Foreground="#F9C697" FontSize="13"/>
+                      <TextBlock Text="وقفه یا تغییر فعالیت" Foreground="#AFC4D6"
+                                 FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+                  </Border>
+                </UniformGrid>
+
+                <TextBlock x:Name="ReminderCount" Text="هنوز یادآوری ثبت نشده" Foreground="#B8CCE4" Margin="0,0,0,12"/>
+                <TextBlock Text="تمرین فوری" Foreground="#ECF5FF" FontSize="16"
+                           FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <WrapPanel>
+                  <Button Content="◉   استراحت چشم" Style="{StaticResource GlassButton}"
+                          Click="EyePractice_Click" Margin="0,0,8,0"/>
+                  <Button Content="◈   بررسی نشستن" Style="{StaticResource GlassButton}"
+                          Click="PosturePractice_Click" Margin="0,0,8,0"/>
+                  <Button Content="↗   حرکت کوتاه" Style="{StaticResource GlassButton}"
+                          Click="MovePractice_Click"/>
+                </WrapPanel>
+              </StackPanel>
+            </ScrollViewer>
+
+            <!-- Built-in full HSE guidance library -->
+            <Grid x:Name="StandardsPage" Visibility="Collapsed">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+              </Grid.RowDefinitions>
+              <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                <ComboBox x:Name="GuideFilter" Width="158" Height="36"
+                          DockPanel.Dock="Left" SelectionChanged="Filter_Changed"
+                          SelectedIndex="0" Background="#F0E7F1FF" Foreground="#16243C"
+                          FontSize="13">
+                  <ComboBoxItem Content="همهٔ موضوعات"/>
+                  <ComboBoxItem Content="چشم"/>
+                  <ComboBoxItem Content="بدن"/>
+                  <ComboBoxItem Content="استراحت"/>
+                  <ComboBoxItem Content="محیط"/>
+                  <ComboBoxItem Content="ایمنی"/>
+                  <ComboBoxItem Content="سلامت"/>
+                  <ComboBoxItem Content="مدیریت"/>
+                </ComboBox>
+                <StackPanel Margin="10,0,0,0">
+                  <TextBlock Text="کتابخانه راهنمای ارگونومی و HSE" Foreground="White"
+                             FontSize="16" FontWeight="SemiBold"/>
+                  <TextBlock x:Name="GuideCount" Text="۲۳ راهنمای کاربردی، از منابع معتبر"
+                             Foreground="#A9BED3" FontSize="11" Margin="0,4,0,0"/>
+                </StackPanel>
+              </DockPanel>
+              <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="GuidesList" ItemTemplate="{StaticResource GuideTemplate}"/>
+              </ScrollViewer>
+            </Grid>
+
+            <!-- Workplace setup checklist, no account and no data entry -->
+            <ScrollViewer x:Name="DeskPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+                <TextBlock Text="چک‌لیست سریع میز کار" FontSize="20" Foreground="White" FontWeight="Bold"/>
+                <TextBlock Text="موارد را روی میز خودت بررسی کن؛ این خودارزیابی جای بررسی متخصص HSE را نمی‌گیرد."
+                           TextWrapping="Wrap" Foreground="#B3C5DB" FontSize="12" Margin="0,7,0,15"/>
+                <Border Style="{StaticResource GuideCard}">
+                  <StackPanel>
+                    <TextBlock x:Name="CheckProgressText" Text="۰ از ۸ مورد بررسی شده"
+                               Foreground="#8EF7E6" FontSize="14" FontWeight="Bold" Margin="0,0,0,12"/>
+                    <CheckBox x:Name="CheckMonitor" Content="مانیتور روبه‌روی چشم و در فاصلهٔ دید راحت قرار دارد."
+                              Checked="Checklist_Changed" Unchecked="Checklist_Changed"/>
+                    <CheckBox x:Name="CheckTop" Content="لبه بالای نمایشگر در ارتفاع چشم یا پایین‌تر است."
+                              Checked="Checklist_Changed" Unchecked="Checklist_Changed"/>
+                    <CheckBox x:Name="CheckBack" Content="کمر تکیه‌گاه مناسب دارد."
+                              Checked="Checklist_Changed" Unchecked="Checklist_Changed"/>
+                    <CheckBox x:Name="CheckFeet" Content="کف پاها روی زمین یا زیرپایی حمایت می‌شود."
+                              Checked="Checklist_Changed" Unchecked="Checklist_Changed"/>
+                    <CheckBox x:Name="CheckHands" Content="شانه، آرنج و مچ‌ها در وضعیت راحت قرار دارند."
+                              Checked="Checklist_Changed" Unchecked="Checklist_Changed"/>
+                    <CheckBox x:Name="CheckLight" Content="صفحه نمایش بازتاب آزاردهنده نور ندارد."
+                              Checked="Checklist_Changed" Unchecked="Checklist_Changed"/>
+                    <CheckBox x:Name="CheckCable" Content="مسیر عبور و کابل‌های اطراف میز ایمن هستند."
+                              Checked="Checklist_Changed" Unchecked="Checklist_Changed"/>
+                    <CheckBox x:Name="CheckMove" Content="در کار روزانه فرصت وقفه و تغییر وضعیت وجود دارد."
+                              Checked="Checklist_Changed" Unchecked="Checklist_Changed"/>
+                    <Button Content="شروع دوبارهٔ بررسی" Style="{StaticResource GlassButton}"
+                            HorizontalAlignment="Right" Margin="0,15,0,0"
+                            Click="ResetChecklist_Click"/>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+
+            <!-- automatic defaults and privacy -->
+            <ScrollViewer x:Name="InfoPage" Visibility="Collapsed"
+                          VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+                <TextBlock Text="خودکار، خصوصی و قابل کنترل" FontSize="20"
+                           FontWeight="Bold" Foreground="White" Margin="0,0,0,13"/>
+                <Border Style="{StaticResource GuideCard}">
+                  <StackPanel>
+                    <TextBlock Text="برنامهٔ زمان‌بندی پیش‌فرض" FontSize="16"
+                               FontWeight="SemiBold" Foreground="#8EF5E2"/>
+                    <TextBlock Text="چشم: ۲۰ دقیقه  •  وضعیت بدن: ۳۰ دقیقه  •  وقفهٔ حرکتی: ۵۵ دقیقه"
+                               Foreground="White" FontSize="13" Margin="0,9,0,4"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="یادآوری‌ها با شروع برنامه فعال می‌شوند؛ لازم نیست زمان‌بندی وارد کنی."
+                               Foreground="#B6CADF" FontSize="12" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GuideCard}">
+                  <StackPanel>
+                    <TextBlock Text="ترجیحات ساده" FontSize="16" Foreground="White"
+                               FontWeight="SemiBold" Margin="0,0,0,10"/>
+                    <TextBlock Text="برنامهٔ خودکار" FontSize="18" Foreground="White" Margin="0,0,0,12"/>
+                <UniformGrid Columns="2" Margin="0,0,0,12">
+                  <CheckBox x:Name="EyeToggle" Content="چشم" Foreground="White"/>
+                  <TextBox x:Name="EyeInterval" AutomationProperties.Name="فاصله یادآور چشم به دقیقه" Margin="8,3"/>
+                  <CheckBox x:Name="PostureToggle" Content="نشستن" Foreground="White"/>
+                  <TextBox x:Name="PostureInterval" AutomationProperties.Name="فاصله یادآور نشستن به دقیقه" Margin="8,3"/>
+                  <CheckBox x:Name="MoveToggle" Content="حرکت" Foreground="White"/>
+                  <TextBox x:Name="MoveInterval" AutomationProperties.Name="فاصله یادآور حرکت به دقیقه" Margin="8,3"/>
+                  <TextBlock Text="آب (دقیقه)" Foreground="White"/>
+                  <TextBox x:Name="WaterInterval" AutomationProperties.Name="فاصله یادآور آب به دقیقه" Margin="8,3"/>
+                </UniformGrid>
+                <Button Content="ذخیرهٔ برنامه" Click="SaveSchedule_Click" Style="{StaticResource GlassButton}" Margin="0,0,0,16"/>
+                <TextBlock Text="همراه و حرکت" FontSize="18" Foreground="White" Margin="0,0,0,10"/>
+                <ComboBox x:Name="BuddyPicker" SelectedIndex="0" SelectionChanged="Buddy_Changed" Margin="0,0,0,12" AutomationProperties.Name="انتخاب کاراکتر">
+                  <ComboBoxItem Content="Posture Buddy · نشستن"/>
+                  <ComboBoxItem Content="Eye Guardian · چشم"/>
+                  <ComboBoxItem Content="Move Buddy · حرکت"/>
+                  <ComboBoxItem Content="Wellness Buddy · سلامت"/>
+                </ComboBox>
+                <CheckBox x:Name="MotionToggle" Content="فعال‌بودن انیمیشن‌ها" Foreground="White" Checked="Motion_Changed" Unchecked="Motion_Changed" Margin="0,4"/>
+                <CheckBox x:Name="ReducedToggle" Content="کاهش حرکت" Foreground="White" Checked="Motion_Changed" Unchecked="Motion_Changed" Margin="0,4,0,16"/>
+                <TextBlock Text="تاریخچهٔ محلی (حداکثر ۲۰۰ رویداد)" Foreground="White" FontSize="16" Margin="0,12"/>
+                <ListBox x:Name="HistoryList" MaxHeight="140" Background="#18263E" Foreground="White" AutomationProperties.Name="تاریخچه یادآورها"/>
+                <Button Content="پاک‌کردن تاریخچه" Click="ClearHistory_Click" Style="{StaticResource GlassButton}" Margin="0,8,0,16"/>
+                <CheckBox x:Name="RunOnStartup" Content="اجرای خودکار با ورود به ویندوز"
+                              Checked="Preference_Changed" Unchecked="Preference_Changed"/>
+                    <CheckBox x:Name="HydrationToggle" Content="یادآوری اختیاری نوشیدن آب (هر ۱۲۰ دقیقه)"
+                              Checked="Preference_Changed" Unchecked="Preference_Changed"/>
+                  </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GuideCard}">
+                  <StackPanel>
+                    <TextBlock Text="تعهد حریم خصوصی" FontSize="16" Foreground="#91F3E3"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="بدون دوربین، بدون ضبط صفحه، بدون ردیابی کلیدهای تایپ، بدون سرور و بدون امتیازدهی کارکنان."
+                               Foreground="#D5E1F0" FontSize="13" TextWrapping="Wrap" Margin="0,9,0,5"/>
+                    <TextBlock Text="تنها از زمان آخرین ورودی سیستم برای تشخیص بی‌کاری استفاده می‌شود. برنامه نمی‌تواند تشخیص دهد که واقعاً درست نشسته‌ای."
+                               Foreground="#AFC2D8" FontSize="12" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="در صورت درد یا مشکل بینایی پایدار، ارزیابی تخصصی لازم است. این ابزار گواهی رعایت HSE نیست."
+                           Foreground="#91A9C1" FontSize="12" TextWrapping="Wrap" Margin="4,0,4,6"/>
+              </StackPanel>
+            </ScrollViewer>
+          </Grid>
+
+          <DockPanel Grid.Row="2" LastChildFill="True" Margin="0,13,0,0">
+            <Button Content="خروج از برنامه" DockPanel.Dock="Left" Style="{StaticResource GlassButton}"
+                    Padding="10,6" FontSize="11" Click="Exit_Click"/>
+            <TextBlock x:Name="FooterText" Text="✦  استانداردها داخل برنامه هستند؛ بدون تنظیم اولیه و بدون نظارت تصویری."
+                       Foreground="#91AFC6" FontSize="11" VerticalAlignment="Center"/>
+          </DockPanel>
+        </Grid>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
