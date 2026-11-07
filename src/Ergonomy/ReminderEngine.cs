@@ -11,6 +11,8 @@ public sealed class ReminderEngine : IDisposable
     private bool _locked;
     private bool _disposed;
     public event Action<ReminderKind>? ReminderDue;
+    public event Action<CustomReminder>? CustomReminderDue;
+    public string NextTitle=>_schedule.NextTitle;
     public bool IsPaused => _schedule.IsPaused;
     public bool IsIdle => _locked || WindowsEnvironment.IdleSeconds() >= 180;
     public bool IsQuiet => WindowsEnvironment.ShouldSuppress();
@@ -41,7 +43,8 @@ public sealed class ReminderEngine : IDisposable
         var elapsed = (now - _lastTick) / 1000.0;
         _lastTick = now;
         var due = _schedule.Advance(elapsed, IsIdle, IsQuiet);
-        if (due is ReminderKind kind) ReminderDue?.Invoke(kind);
+        if(due==ReminderKind.Custom && _schedule.PendingCustom is CustomReminder custom) CustomReminderDue?.Invoke(custom);
+        else if (due is ReminderKind kind) ReminderDue?.Invoke(kind);
     }
     public void Dispose()
     {

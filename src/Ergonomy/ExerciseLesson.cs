@@ -1,6 +1,5 @@
 namespace Ergonomy;
 
-public sealed record ExerciseStep(string Title, string Hint, int Seconds);
 
 /// <summary>Explicit coaching sequence; elapsed time never marks a reminder Done.</summary>
 public sealed class ExerciseLesson
@@ -15,16 +14,11 @@ public sealed class ExerciseLesson
     public ExerciseStep Current => Steps[Index];
     public double Progress => Math.Clamp(Elapsed / Current.Seconds, 0, 1);
     public int Remaining => Math.Max(0, (int)Math.Ceiling(Current.Seconds - Elapsed));
-    public ExerciseLesson(ReminderKind kind)
+    public ExerciseLesson(ReminderKind kind) : this(kind,ExerciseCatalog.Routine(kind),0) { }
+    public ExerciseLesson(ReminderKind kind,IReadOnlyList<ExerciseStep> steps,int index=0)
     {
-        Kind = kind;
-        Steps = kind switch
-        {
-            ReminderKind.Eye => [new("چند پلک آرام", "بدون فشار چشم‌ها را باز و بسته کن", 5),new("۲۰ ثانیه نگاه دور", "به نقطه‌ای حدود ۶ متر دورتر نگاه کن",20)],
-            ReminderKind.Posture => [new("درست نشستی؟", "شانه‌ها رها؛ کمر و پاها حمایت شوند",8),new("گردنت راحت است؟", "سر در امتداد بدن؛ بدون فشار یا درد",8),new("پاها را تکیه بده", "کف پا روی زمین یا زیرپایی",6)],
-            ReminderKind.Move => [new("آرام از جا بلند شو", "اگر برایت راحت و ایمن است",6),new("چند قدم راه برو", "در فضای امن اطرافت",10),new("شانه‌ها را آرام حرکت بده", "در دامنهٔ راحت، بدون درد",8)],
-            _ => [new("آب خوردی؟", "اگر نیاز داری، کمی بنوش",8)]
-        };
+        if(steps.Count==0)throw new ArgumentException("فهرست حرکت خالی است.");
+        Kind=kind;Steps=steps;Index=Math.Clamp(index,0,steps.Count-1);
     }
     public void Advance(double seconds)
     {

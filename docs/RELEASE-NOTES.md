@@ -1,9 +1,9 @@
-Ergonomy 0.5 RC — Right Edge
+همیار سلامت ۰٫۶ — نسخهٔ آزمایشی
 
-The dock now reveals and retreats horizontally at the RIGHT edge, below title-bar controls. Hover briefly on the right edge near the upper part of the desktop; the top-right close corner no longer activates it.
+کارت بالاتر آمده و در حالت جمع‌شده یک نشان باریک سایه‌دار روی لبهٔ راست جای آن را مشخص می‌کند. آیکون اختصاصی، نام و رابط فارسی، بخش دربارهٔ فارسی و کتابخانهٔ ۱۹ حرکت/خودارزیابی اداری اضافه شده‌اند.
 
-+ opens three quick actions (Eye, Body, About). Every exercise has its own timer and Previous/Next controls; reaching zero waits for Next. Click the countdown to pause/resume or repeat. Stronger articulated walking and eased standing preserve the minimal glass UI and embedded Yekan font.
+از +، «حرکت‌ها»، «زمان‌بندی» یا «درباره» را باز کنید. زمان چهار یادآور اصلی قابل تغییر است؛ یادآور شخصی با عنوان، متن، فاصله، فعال/غیرفعال و حذف قابل افزودن است. زمان‌ها برحسب دقیقهٔ فعالیت‌اند. تغییرات با دکمهٔ ذخیره اعمال می‌شوند.
 
-Short sitting/neck/shoulder reminders reuse the existing automatic cycle; optional water is retained in tray settings. About includes Mirjafari and 09186441801 as requested.
+ابتدا از نسخهٔ قبلی کنار ساعت خارج شوید. نصاب برای کاربر فعلی است؛ نسخهٔ قابل‌حمل را از ZIP استخراج و Ergonomy.exe را اجرا کنید. نصب فونت، نصب جداگانهٔ .NET یا اینترنت لازم نیست.
 
-Exit the previous Ergonomy from its tray before installing. The per-user setup and portable ZIP are unsigned. No separate font/.NET install or internet is required. See docs/RIGHT-EDGE-V5.md for tests and remaining physical Windows 11 pilot scope.
+منابع و دامنهٔ کتابخانه و تست‌ها در docs/SALAMAT-V6.md آمده‌اند. این نسخه امضانشده است؛ پایلوت واقعی Windows 11 برای چند نمایشگر، ظاهر بلور، دسترس‌پذیری و مصرف طولانی باقی است.

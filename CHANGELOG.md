@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0-rc.1 — 2026-11-07
+
+- Persian product identity, menus, About and dedicated executable/tray/header icon.
+- Raise dock to 64 DIP, add a subtle quiet-aware edge cue and shadow.
+- Source-backed catalog of 19 Persian office movements/self-checks with distinct vector demonstrations.
+- Editable built-in intervals and draft-based personal reminder add/edit/enable/delete.
+- Unified fair scheduling, per-reminder snooze and shared response cooldown.
+- Scroll-safe content, catalog filtering and expanded native Windows smoke.
+
+
 ## 0.5.0-rc.1 — 2026-11-07
 
 - Right-edge hover and horizontal reveal/retreat, clear of title-bar controls.

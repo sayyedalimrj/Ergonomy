@@ -60,11 +60,16 @@ internal static class WindowsEnvironment
         var scale=Math.Max(96,GetDpiForWindow(hwnd))/96.0;
         SetWindowPos(hwnd,IntPtr.Zero,m.Work.Right-(int)Math.Round(window.Width*scale)-8,m.Work.Top+(int)SideDockGeometry.Offset(m.Work.Bottom-m.Work.Top,scale),0,0,0x0015);
     }
+    public static void PositionHandle(Window owner,Window hint)
+    {
+        var m=Monitor(owner);var scale=Math.Max(96,GetDpiForWindow(new WindowInteropHelper(owner).Handle))/96.0;
+        SetWindowPos(new WindowInteropHelper(hint).Handle,IntPtr.Zero,m.Work.Right-(int)(16*scale),m.Work.Top+(int)(SideDockGeometry.Offset(m.Work.Bottom-m.Work.Top,scale)+10*scale),0,0,0x0015);
+    }
     [DllImport("user32.dll")] private static extern bool SetCursorPos(int x,int y);
     public static void TestCornerPointer(Window window,Action test)
     {
         GetCursorPos(out var before);var m=Monitor(window);
-        try { if(!SetCursorPos(m.Work.Right-1,m.Work.Top+(int)(SideDockGeometry.Offset(m.Work.Bottom-m.Work.Top,Math.Max(96,GetDpiForWindow(new WindowInteropHelper(window).Handle))/96.0)+30)))throw new InvalidOperationException("Test desktop cursor unavailable.");test(); }
+        try { if(!SetCursorPos(m.Work.Right-1,m.Work.Top+(int)(SideDockGeometry.Offset(m.Work.Bottom-m.Work.Top,Math.Max(96,GetDpiForWindow(new WindowInteropHelper(window).Handle))/96.0)+30*Math.Max(96,GetDpiForWindow(new WindowInteropHelper(window).Handle))/96.0)))throw new InvalidOperationException("Test desktop cursor unavailable.");test(); }
         finally { SetCursorPos(before.X,before.Y); }
     }
     public static bool PointerInCorner(Window window)

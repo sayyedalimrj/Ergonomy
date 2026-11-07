@@ -102,9 +102,11 @@ public sealed class BuddyControl : FrameworkElement
         var accent=lesson.Kind==ReminderKind.Eye?mint:lesson.Kind==ReminderKind.Posture?purple:blue;
         var moving=!ReducedMotion&&SystemParameters.ClientAreaAnimation;
         double phase=moving?_phase:0;
-        int stage=lesson.Index;
-        if(_lessonStep!=stage){_lessonStep=stage;_phase=0;phase=0;}
-        if(lesson.Kind==ReminderKind.Eye)
+        var motion=lesson.Current.Motion;
+        if(_lessonStep!=lesson.Index){_lessonStep=lesson.Index;_phase=0;phase=0;}
+        if(DrawOfficeMotion(dc,motion,phase,moving)) {dc.Pop();dc.Pop();return;}
+        int stage=motion switch {ExerciseMotion.FarFocus or ExerciseMotion.ChinGlide or ExerciseMotion.Walk=>1,ExerciseMotion.Feet or ExerciseMotion.ShoulderRoll=>2,_=>0};
+        if(motion is ExerciseMotion.Blink or ExerciseMotion.FarFocus)
         {
             // Eye lesson: a slow blink, then a stable far target. No eye-rolling exercise.
             dc.DrawEllipse(Make("#143844"),null,new Point(112,79),62,62);
@@ -127,12 +129,12 @@ public sealed class BuddyControl : FrameworkElement
                 dc.DrawLine(dotted,new Point(158,69),new Point(209,60));
                 Label(dc,"۶ متر",209,92,white,13);
             }
-            else {Label(dc,"پلک آرام",191,70,mint,13);}
+
         }
         else
         {
-            bool posture=lesson.Kind==ReminderKind.Posture;
-            bool standing=lesson.Kind==ReminderKind.Move;
+            bool posture=motion is ExerciseMotion.Sit or ExerciseMotion.ChinGlide or ExerciseMotion.Feet;
+            bool standing=motion is ExerciseMotion.Stand or ExerciseMotion.Walk or ExerciseMotion.ShoulderRoll;
             // Side-view chair and articulated hip/knee/ankle geometry makes sitting/standing legible.
             var chair=new Pen(Make("#6A8297"),5){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round};
             if(posture||stage==0){dc.DrawLine(chair,new Point(99,69),new Point(99,114));dc.DrawLine(chair,new Point(99,111),new Point(144,111));dc.DrawLine(chair,new Point(113,112),new Point(106,147));}
@@ -184,13 +186,93 @@ public sealed class BuddyControl : FrameworkElement
                 if(stage==1){dc.DrawLine(new Pen(purple,1){DashStyle=DashStyles.Dot},new Point(shoulder.X-26,head.Y-20),new Point(shoulder.X-26,hip.Y));Arrow(dc,new Point(174,35),new Point(155,35),purple);}
                 if(stage==2){dc.DrawRoundedRectangle(Make("#426B65"),null,new Rect(143,148,38,5),2,2);Arrow(dc,new Point(184,125),new Point(184,145),mint);}
             }
-            if(lesson.Kind==ReminderKind.Water)
+            if(motion==ExerciseMotion.Water)
             {
                 dc.DrawRoundedRectangle(white,null,new Rect(165,74,17,23),3,3);
                 dc.DrawRoundedRectangle(mint,null,new Rect(168,84,11,10),1,1);
             }
         }
         dc.Pop();dc.Pop();
+    }
+    private bool DrawOfficeMotion(DrawingContext dc,ExerciseMotion motion,double phase,bool animated)
+    {
+        if(motion is ExerciseMotion.Blink or ExerciseMotion.FarFocus or ExerciseMotion.Sit or ExerciseMotion.ChinGlide or ExerciseMotion.Feet or ExerciseMotion.Stand or ExerciseMotion.Walk or ExerciseMotion.ShoulderRoll or ExerciseMotion.Water)return false;
+        var skin=Make("#F6D5BA");var accent=Make("#BDA9FF");var mint=Make("#83E8D0");var blue=Make("#94C4FF");var ink=Make("#14263C");var white=Make("#F1F7FF");
+        double q=animated?(Math.Sin(phase*1.05)+1)/2:.55;
+        void Line(Brush brush,double width,Point a,Point b)=>dc.DrawLine(new Pen(brush,width){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},a,b);
+        if(motion is ExerciseMotion.WristLeft or ExerciseMotion.WristRight or ExerciseMotion.Hands)
+        {
+            void Hand(double x,double y,double spread)
+            {
+                dc.DrawRoundedRectangle(skin,null,new Rect(x-19,y,38,36),12,12);
+                double[] lengths={22,29,27,20};
+                for(int i=0;i<4;i++)
+                {
+                    double px=x-13+i*9;
+                    var basePoint=new Point(px,y+5);
+                    var joint=new Point(px+(i-1.5)*spread*4,y-8-spread*lengths[i]*.4);
+                    var tip=new Point(px+(i-1.5)*spread*7,y-8-spread*lengths[i]);
+                    Line(skin,7,basePoint,joint);Line(skin,6,joint,tip);
+                }
+                Line(skin,8,new Point(x-16,y+17),new Point(x-23-9*spread,y+6-8*spread));
+            }
+            if(motion==ExerciseMotion.Hands)
+            {
+                dc.DrawRoundedRectangle(blue,null,new Rect(67,110,35,35),9,9);dc.DrawRoundedRectangle(accent,null,new Rect(172,110,35,35),9,9);
+                Hand(85,79,q);Hand(190,79,q);Arrow(dc,new Point(126,67),new Point(149,67),mint);
+            }
+            else
+            {
+                bool left=motion==ExerciseMotion.WristLeft;
+                if(!left)dc.PushTransform(new ScaleTransform(-1,1,138,0));
+                Line(blue,27,new Point(55,106),new Point(136,106));
+                dc.DrawEllipse(skin,null,new Point(148,105),12,12);
+                dc.PushTransform(new RotateTransform(-12+24*q,148,105));
+                Hand(150,68,.85);dc.Pop();
+                Arrow(dc,new Point(208,64),new Point(208,101),mint);
+                if(!left)dc.Pop();
+            }
+            return true;
+        }
+        if(motion==ExerciseMotion.Ankles)
+        {
+            Line(Make("#6C8296"),5,new Point(79,50),new Point(79,93));Line(Make("#6C8296"),5,new Point(79,91),new Point(131,91));Line(blue,17,new Point(97,87),new Point(145,95));
+            Line(ink,15,new Point(145,95),new Point(187,111));Line(white,7,new Point(187,111),new Point(210,111-16*q));
+            Line(Make("#6A8297"),1,new Point(72,143),new Point(203,143));Arrow(dc,new Point(232,94),new Point(232,117),mint);return true;
+        }
+        // Front-facing upper body makes neck direction and shoulder symmetry clear.
+        double shoulderY=motion==ExerciseMotion.Shrug?76-7*q:76;
+        dc.DrawEllipse(Make("#132B3C"),null,new Point(138,148),39,5);
+        Line(ink,11,new Point(126,116),new Point(122,144));Line(ink,11,new Point(150,116),new Point(155,144));
+        dc.DrawRoundedRectangle(accent,null,new Rect(111,shoulderY-9,54,50),17,17);
+        var lShoulder=new Point(112,shoulderY);var rShoulder=new Point(164,shoulderY);
+        var lElbow=new Point(102,99);var rElbow=new Point(174,99);var lHand=new Point(106,121);var rHand=new Point(170,121);
+        if(motion==ExerciseMotion.UpperBack)
+        {
+            lElbow=new Point(111,98);rElbow=new Point(165,98);lHand=new Point(145-5*q,91);rHand=new Point(131+5*q,91);
+            Arrow(dc,new Point(93,84),new Point(71,84),mint);Arrow(dc,new Point(183,84),new Point(205,84),mint);
+        }
+        if(motion==ExerciseMotion.Chest)
+        {
+            lElbow=new Point(90-7*q,82);rElbow=new Point(186+7*q,82);lHand=new Point(117,48);rHand=new Point(159,48);
+            Arrow(dc,new Point(95,101),new Point(72,101),mint);Arrow(dc,new Point(181,101),new Point(204,101),mint);
+        }
+        Line(accent,8,lShoulder,lElbow);Line(accent,8,lElbow,lHand);Line(accent,8,rShoulder,rElbow);Line(accent,8,rElbow,rHand);
+        dc.DrawEllipse(skin,null,lHand,5,5);dc.DrawEllipse(skin,null,rHand,5,5);
+        double direction=motion is ExerciseMotion.NeckLeft or ExerciseMotion.TiltLeft?-1:1;
+        bool tilt=motion is ExerciseMotion.TiltLeft or ExerciseMotion.TiltRight;
+        bool turn=motion is ExerciseMotion.NeckLeft or ExerciseMotion.NeckRight;
+        if(tilt)dc.PushTransform(new RotateTransform(direction*12*q,138,65));
+        dc.DrawEllipse(skin,null,new Point(138,44),18,22);
+        dc.DrawEllipse(ink,null,new Point(138,29),17,8);
+        double gaze=turn?direction*7*q:0;
+        dc.DrawEllipse(white,null,new Point(131+gaze,44),4,5);dc.DrawEllipse(white,null,new Point(145+gaze,44),4,5);
+        dc.DrawEllipse(ink,null,new Point(132+gaze,44),2,3);dc.DrawEllipse(ink,null,new Point(146+gaze,44),2,3);
+        Line(ink,1.5,new Point(133+gaze,56),new Point(143+gaze,56));
+        if(tilt)dc.Pop();
+        if(turn||tilt)Arrow(dc,new Point(194,42),new Point(194+direction*23,42+(tilt?12:0)),mint);
+        if(motion==ExerciseMotion.Shrug){Arrow(dc,new Point(90,86),new Point(90,65),mint);Arrow(dc,new Point(186,86),new Point(186,65),mint);}
+        return true;
     }
     private static SolidColorBrush Make(string hex)
     {
