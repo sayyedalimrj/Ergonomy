@@ -1,39 +1,49 @@
-# Ergonomy — Workplace Wellness Assistant
+# Ergonomy — Glass Dock for Windows
 
-Ergonomy is a privacy-first Windows desktop reminder for screen breaks, posture check-ins, and movement during office work.
+Version 0.2 technical preview — always-on-top ergonomic and workplace-HSE assistant for Windows 11.
 
-## MVP preview
+## What changed
 
-- 🖥️ Windows WPF (.NET 10) Persian / right-to-left control center
-- 👁️ Eye refocus: 20 minutes / 20 seconds / at least 20 feet (6 m)
-- 🪑 Posture self-check: every 30 active minutes (product default, **not** a regulatory requirement)
-- 🚶 Movement / screen break: after 55 active minutes; suggested change of activity or 5–10 minute pause
-- 💧 Optional hydration reminder, off by default
-- ✨ Non-focus-stealing, animated topmost desktop popup with Snooze and Done
-- 🕒 Tracks idle periods rather than full wall-clock time, suppresses reminders when the Windows session is locked
-- 🔔 System tray background mode, local JSON settings, optional Windows login startup
-- 🔒 No camera access, screenshot capture, cloud analytics, monitoring, or staff surveillance
+The original dashboard has been replaced with a floating top-center glass-styled island, visible while using other desktop programs. Expand the island to open a colorful, animated RTL Persian control center. Auto reminders start immediately: there are no interval fields to fill in.
 
-## Run or publish
+- 20-min eye reminder with optional 20-second countdown (does not assume user completed it).
+- 30-min posture self-check; this is a product heuristic, not an ISO legal timing requirement.
+- 55-min activity change / break reminder inspired by UK HSE short frequent breaks.
+- Optional 120-min hydration nudge, disabled by default.
+- Curated HSE guidance catalog with source links on eye health, computer equipment, posture, breaks, cables, electricity, exits, lifting, thermal comfort, mental wellbeing, workplace assessment and management.
+- Interactive workstation checklist.
+- Topmost capsule, animated expand/collapse, animated pulse, gradients and translucent layered glass styling.
+- Pause/resume, automatic idle and locked-session suppression.
+- Startup with Windows enabled by default if policy allows; single instance.
+- Startup diagnostics in a local log; optional tray access.
+- No webcam, screenshots, content monitoring, employee tracking, account, network API or cloud storage.
 
-Windows 11 + .NET 10 SDK:
+## Download and test
 
-```powershell
-dotnet run --project src/Ergonomy/Ergonomy.csproj
-```
+Open the GitHub Actions Windows build workflow, select a successful run on branch feat/glass-dock-v2, and download artifact Ergonomy-GlassDock-v2-Windows-x64.
 
-Self-contained publish for Windows x64:
+Extract the entire ZIP to a stable folder, quit any prior Ergonomy version, and launch Ergonomy.exe. A self-contained build should not require installing the .NET runtime.
 
-```powershell
-dotnet publish src/Ergonomy/Ergonomy.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
-```
+To compile locally on Windows 11 with .NET 10 SDK:
 
-When CI succeeds, the Windows build workflow also uploads a downloadable artifact.
+    dotnet run --project src/Ergonomy/Ergonomy.csproj
 
-## Medical and compliance boundaries
+To publish:
 
-This MVP reminds users to check their own posture; it does **not** measure or infer body position. The time schedule is configurable, not a universal occupational safety obligation, and the app is not medical equipment or a substitute for workplace assessment by HSE professionals.
+    dotnet publish src/Ergonomy/Ergonomy.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 
-Read [evidence review](docs/ERGONOMICS-EVIDENCE.md) and [development plan](docs/PRODUCT-ROADMAP.md).
+## If the program vanishes or fails to launch
 
-**Status:** Windows compilation/behavior pending CI and real Windows device tests. Not yet approved for organization-wide deployment.
+The new version writes diagnostics to:
+
+    %LOCALAPPDATA%\Ergonomy\logs\app.log
+
+In File Explorer address bar paste this exact path. Include this log and Windows 11 build version in any issue report. A Windows compile and headless self-test are not proof of functional behavior under a real logged-in desktop. Multi-monitor, focus mode, full-screen, DPI and security software tests are still needed.
+
+## Important boundaries
+
+Glassy here means a translucent gradient layered WPF dock with glowing highlights. True live Acrylic blur of desktop content behind the dock is not yet included; layered windows and DWM backdrops have limitations, so this version deliberately uses a stable visual fallback. No ISO certification or full international legal compliance is claimed. Copyrighted ISO standards are referenced by scope, not reproduced.
+
+The app cannot detect whether a person is sitting correctly without sensors; posture check-ins are self-assessment prompts. The built-in guidance covers essential office-HSE topics but does not replace a site risk assessment or qualified HSE evaluation.
+
+See docs/ERGONOMICS-EVIDENCE.md and docs/OFFICE-HSE-CHECKLIST.md.

@@ -5,30 +5,63 @@ using Microsoft.Win32;
 namespace Ergonomy;
 
 public enum ReminderKind { Eye, Posture, Move, Water }
-public enum ReminderResponse { Done, Snooze, AutoDismiss }
+public enum ReminderResponse { Done, Snooze, Dismissed }
 
 public sealed class ReminderEngine : IDisposable
 {
-    private readonly DispatcherTimer _timer;
-    private readonly Dictionary<ReminderKind, double> _lastShown = new();
+    private readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromSeconds(2) };
+    private readonly Dictionary<ReminderKind, double> _last = new();
     private AppSettings _settings;
-    private double _workSeconds;
-    private double _lastAnyShown = -120;
-    private long _lastTick;
-    private DateTimeOffset _snoozeUntil = DateTimeOffset.MinValue;
-    private bool _pending;
+    private double _activeSeconds;
+    private double _lastAlertSeconds = -120;
+    private long _lastTick = Environment.TickCount64;
+    private DateTimeOffset _pausedUntil = DateTimeOffset.MinValue;
     private bool _sessionLocked;
+    private bool _hasPendingAlert;
+    private bool _subscribed;
+
     public event Action<ReminderKind>? ReminderDue;
 
     public ReminderEngine(AppSettings settings)
     {
         _settings = settings;
-        foreach (ReminderKind kind in Enum.GetValues<ReminderKind>()) _lastShown[kind] = 0;
-        _lastTick = Environment.TickCount64;
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        _timer.Tick += Tick;
-        SystemEvents.SessionSwitch += SessionChanged;
+        foreach (ReminderKind kind in Enum.GetValues<ReminderKind>()) _last[kind] = 0;
+        _tick.Tick += Tick;
+        try { SystemEvents.SessionSwitch += SessionChanged; _subscribed = true; }
+        catch (Exception ex) { Diagnostics.Record("session-hook", ex); }
     }
+
+    public bool IsPaused => DateTimeOffset.UtcNow < _pausedUntil;
+    public bool IsIdle => _sessionLocked || IdleSeconds() >= 180;
+
+    public void Start() => _tick.Start();
+
+    public (ReminderKind Kind, TimeSpan Remaining)? NextReminder
+    {
+        get
+        {
+            var choices = Schedule().Where(x => x.Enabled)
+                .Select(x => (x.Kind, Remaining: TimeSpan.FromSeconds(
+                    Math.Max(0, x.Minutes * 60 - (_activeSeconds - _last[x.Kind])))))
+                .OrderBy(x => x.Remaining).ToList();
+            return choices.Count == 0 ? null : choices[0];
+        }
+    }
+
+    public void PauseFor(TimeSpan time)
+    {
+        _pausedUntil = DateTimeOffset.UtcNow.Add(time);
+        _hasPendingAlert = false;
+    }
+    public void Resume() => _pausedUntil = DateTimeOffset.MinValue;
+
+    private (ReminderKind Kind, bool Enabled, int Minutes)[] Schedule() =>
+    [
+        (ReminderKind.Move, _settings.MoveEnabled, _settings.MoveMinutes),
+        (ReminderKind.Eye, _settings.EyeEnabled, _settings.EyeMinutes),
+        (ReminderKind.Posture, _settings.PostureEnabled, _settings.PostureMinutes),
+        (ReminderKind.Water, _settings.WaterEnabled, _settings.WaterMinutes)
+    ];
 
     private void SessionChanged(object sender, SessionSwitchEventArgs e)
     {
@@ -36,62 +69,57 @@ public sealed class ReminderEngine : IDisposable
         if (e.Reason == SessionSwitchReason.SessionUnlock) _sessionLocked = false;
     }
 
-    public void Start() => _timer.Start();
-    public void Configure(AppSettings settings) => _settings = settings;
-
     private void Tick(object? sender, EventArgs e)
     {
         var now = Environment.TickCount64;
-        double seconds = Math.Clamp((now - _lastTick) / 1000.0, 0, 5);
+        var elapsed = Math.Clamp((now - _lastTick) / 1000.0, 0, 3);
         _lastTick = now;
-        if (_sessionLocked || IdleSeconds() >= 180) return;
-        _workSeconds += seconds;
-        if (_pending || DateTimeOffset.UtcNow < _snoozeUntil || _workSeconds - _lastAnyShown < 90) return;
 
-        foreach (var (kind, enabled, minutes) in new[]
+        if (IsIdle || IsPaused || _hasPendingAlert) return;
+        _activeSeconds += elapsed;
+        if (_activeSeconds - _lastAlertSeconds < 90) return;
+
+        foreach (var item in Schedule())
         {
-            (ReminderKind.Move, _settings.MoveEnabled, _settings.MoveMinutes),
-            (ReminderKind.Eye, _settings.EyeEnabled, _settings.EyeMinutes),
-            (ReminderKind.Posture, _settings.PostureEnabled, _settings.PostureMinutes),
-            (ReminderKind.Water, _settings.WaterEnabled, _settings.WaterMinutes)
-        })
-        {
-            if (!enabled || _workSeconds - _lastShown[kind] < minutes * 60) continue;
-            _pending = true;
-            _lastAnyShown = _workSeconds;
-            ReminderDue?.Invoke(kind);
+            if (!item.Enabled || _activeSeconds - _last[item.Kind] < item.Minutes * 60) continue;
+            _hasPendingAlert = true;
+            _lastAlertSeconds = _activeSeconds;
+            ReminderDue?.Invoke(item.Kind);
             break;
         }
     }
 
     public void Respond(ReminderKind kind, ReminderResponse response)
     {
-        _pending = false;
+        _hasPendingAlert = false;
         if (response == ReminderResponse.Snooze)
-            _snoozeUntil = DateTimeOffset.UtcNow.AddMinutes(10);
-        else
-            _lastShown[kind] = _workSeconds;
+            PauseFor(TimeSpan.FromMinutes(10));
+        else _last[kind] = _activeSeconds;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct LastInputInfo
-    {
-        public uint cbSize;
-        public uint dwTime;
-    }
+    private struct LastInputInfo { public uint cbSize; public uint dwTime; }
+
     [DllImport("user32.dll")]
     private static extern bool GetLastInputInfo(ref LastInputInfo info);
 
     private static double IdleSeconds()
     {
-        var info = new LastInputInfo { cbSize = (uint)Marshal.SizeOf<LastInputInfo>() };
-        if (!GetLastInputInfo(ref info)) return 180;
-        return unchecked((uint)Environment.TickCount - info.dwTime) / 1000.0;
+        try
+        {
+            var info = new LastInputInfo { cbSize = (uint)Marshal.SizeOf<LastInputInfo>() };
+            if (!GetLastInputInfo(ref info)) return 0;
+            return unchecked((uint)Environment.TickCount - info.dwTime) / 1000.0;
+        }
+        catch { return 0; }
     }
 
     public void Dispose()
     {
-        _timer.Stop();
-        SystemEvents.SessionSwitch -= SessionChanged;
+        _tick.Stop();
+        if (_subscribed)
+        {
+            try { SystemEvents.SessionSwitch -= SessionChanged; } catch { }
+        }
     }
 }

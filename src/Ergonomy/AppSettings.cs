@@ -9,12 +9,12 @@ public sealed class AppSettings
     public bool EyeEnabled { get; set; } = true;
     public bool PostureEnabled { get; set; } = true;
     public bool MoveEnabled { get; set; } = true;
-    public bool WaterEnabled { get; set; }
+    public bool WaterEnabled { get; set; } = false;
     public int EyeMinutes { get; set; } = 20;
     public int PostureMinutes { get; set; } = 30;
     public int MoveMinutes { get; set; } = 55;
     public int WaterMinutes { get; set; } = 120;
-    public bool AutoStart { get; set; }
+    public bool AutoStart { get; set; } = true;
 }
 
 public static class SettingsStore
@@ -30,43 +30,48 @@ public static class SettingsStore
         {
             if (File.Exists(SettingsPath))
             {
-                var result = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath));
-                if (result != null)
+                var s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath));
+                if (s is not null)
                 {
-                    result.EyeMinutes = Math.Clamp(result.EyeMinutes, 1, 480);
-                    result.PostureMinutes = Math.Clamp(result.PostureMinutes, 1, 480);
-                    result.MoveMinutes = Math.Clamp(result.MoveMinutes, 1, 480);
-                    result.WaterMinutes = Math.Clamp(result.WaterMinutes, 1, 480);
-                    return result;
+                    s.EyeMinutes = Math.Clamp(s.EyeMinutes, 1, 480);
+                    s.PostureMinutes = Math.Clamp(s.PostureMinutes, 1, 480);
+                    s.MoveMinutes = Math.Clamp(s.MoveMinutes, 1, 480);
+                    s.WaterMinutes = Math.Clamp(s.WaterMinutes, 1, 480);
+                    return s;
                 }
             }
         }
-        catch (IOException) { }
-        catch (JsonException) { }
-        catch (UnauthorizedAccessException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        { Diagnostics.Record("settings-load", ex); }
         return new AppSettings();
     }
 
     public static void Save(AppSettings settings)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
-        File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        }));
+        var temp = SettingsPath + ".tmp";
+        File.WriteAllText(temp, JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true }));
+        File.Move(temp, SettingsPath, true);
     }
 
-    public static void ConfigureStartup(bool enable)
+    public static void EnsureStartup(bool enabled)
     {
-        using var key = Registry.CurrentUser.CreateSubKey(StartupKey);
-        if (enable)
+        try
         {
-            var executable = Environment.ProcessPath ?? throw new InvalidOperationException("مسیر برنامه مشخص نیست.");
-            key?.SetValue("Ergonomy", "\"" + executable + "\"");
+            using var key = Registry.CurrentUser.CreateSubKey(StartupKey);
+            if (key is null) return;
+            if (enabled)
+            {
+                var executable = Environment.ProcessPath;
+                if (!string.IsNullOrWhiteSpace(executable) &&
+                    executable.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    key.SetValue("Ergonomy", "\"" + executable + "\"");
+                }
+            }
+            else key.DeleteValue("Ergonomy", false);
         }
-        else
-        {
-            key?.DeleteValue("Ergonomy", false);
-        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
+        { Diagnostics.Record("startup-registry", ex); }
     }
 }
