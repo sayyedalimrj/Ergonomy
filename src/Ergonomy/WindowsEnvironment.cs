@@ -21,6 +21,62 @@ internal static class WindowsEnvironment
     [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
     [DllImport("user32.dll", EntryPoint="GetWindowLongW")] private static extern int GetWindowLong(IntPtr hwnd, int index);
     [DllImport("user32.dll", EntryPoint="SetWindowLongW")] private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
+    [StructLayout(LayoutKind.Sequential)] private struct NativePoint { public int X,Y; }
+    [StructLayout(LayoutKind.Sequential)] private struct Margins { public int Left,Right,Top,Bottom; }
+    [DllImport("user32.dll")] private static extern bool GetCursorPos(out NativePoint point);
+    [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hwnd,IntPtr after,int x,int y,int width,int height,uint flags);
+    [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd,int attribute,ref int value,int size);
+    [DllImport("dwmapi.dll")] private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd,ref Margins margins);
+    public static bool ApplyBackdrop(Window window)
+    {
+        var hwnd=new WindowInteropHelper(window).Handle;
+        int dark=1,rounded=2,backdrop=3;
+        DwmSetWindowAttribute(hwnd,20,ref dark,4);
+        DwmSetWindowAttribute(hwnd,33,ref rounded,4);
+        var margins=new Margins{Left=-1,Right=-1,Top=-1,Bottom=-1};
+        DwmExtendFrameIntoClientArea(hwnd,ref margins);
+        int result=DwmSetWindowAttribute(hwnd,38,ref backdrop,4);
+        Diagnostics.Record("backdrop",result==0?"Native transient backdrop requested successfully":"Native backdrop unavailable; opaque contrast fallback");
+        return result==0;
+    }
+    private static MonitorInfo Monitor(Window window)
+    {
+        var hwnd=new WindowInteropHelper(window).Handle;
+        var m=new MonitorInfo{Size=Marshal.SizeOf<MonitorInfo>()};
+        GetMonitorInfo(MonitorFromWindow(hwnd,2),ref m);return m;
+    }
+    public static (double Left,double Top,double Width,double AvailableHeight) CornerAnchor(Window window,double width)
+    {
+        var m=Monitor(window);var hwnd=new WindowInteropHelper(window).Handle;
+        var dpi=Math.Max(96,GetDpiForWindow(hwnd))/96.0;
+        var w=Math.Min(width,(m.Work.Right-m.Work.Left)/dpi-16);
+        return (m.Work.Right/dpi-w-8,m.Work.Top/dpi+8,w,Math.Max(76,(m.Work.Bottom-m.Work.Top)/dpi-16));
+    }
+    public static void SnapCorner(Window window)
+    {
+        var hwnd=new WindowInteropHelper(window).Handle;var m=Monitor(window);
+        var scale=Math.Max(96,GetDpiForWindow(hwnd))/96.0;
+        SetWindowPos(hwnd,IntPtr.Zero,m.Work.Right-(int)Math.Round(window.Width*scale)-8,m.Work.Top+8,0,0,0x0015);
+    }
+    [DllImport("user32.dll")] private static extern bool SetCursorPos(int x,int y);
+    public static void TestCornerPointer(Window window,Action test)
+    {
+        GetCursorPos(out var before);var m=Monitor(window);
+        try { if(!SetCursorPos(m.Work.Right-8,m.Work.Top+1))throw new InvalidOperationException("Test desktop cursor unavailable.");test(); }
+        finally { SetCursorPos(before.X,before.Y); }
+    }
+    public static bool PointerInCorner(Window window)
+    {
+        if(!GetCursorPos(out var p))return false;
+        var m=Monitor(window);var scale=Math.Max(96,GetDpiForWindow(new WindowInteropHelper(window).Handle))/96.0;
+        return p.X>=m.Work.Right-128*scale && p.X<m.Work.Right && p.Y>=m.Work.Top && p.Y<=m.Work.Top+4*scale;
+    }
+    public static bool PointerOver(Window window)
+    {
+        return GetCursorPos(out var p)&&GetWindowRect(new WindowInteropHelper(window).Handle,out var r)
+            && p.X>=r.Left&&p.X<r.Right&&p.Y>=r.Top&&p.Y<r.Bottom;
+    }
     public static double IdleSeconds()
     {
         var info = new InputInfo { Size = (uint)Marshal.SizeOf<InputInfo>() };

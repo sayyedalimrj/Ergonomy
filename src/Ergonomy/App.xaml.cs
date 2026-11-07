@@ -49,7 +49,7 @@ public partial class App : System.Windows.Application
                 var probe = new MainWindow(diagnosticOnly: true);
                 probe.Show();
                 probe.RunUiSelfTest();
-                Diagnostics.Record("ui-self-test", "PASS: shown, laid out, 28 character states rendered, pages and settings controls exercised.");
+                Diagnostics.Record("ui-self-test", "PASS: hidden host, physical corner pointer reveal, compact layout, embedded Yekan glyphs, staged eye/body lessons, settings and conceal exercised.");
                 Shutdown(0);
                 return;
             }
@@ -60,7 +60,7 @@ public partial class App : System.Windows.Application
             var dock = new MainWindow();
             MainWindow = dock;
             dock.Show();
-            Diagnostics.Record("startup", "Glass Dock created successfully.");
+            Diagnostics.Record("startup", "Minimal corner host created successfully.");
         }
         catch (Exception ex)
         {
