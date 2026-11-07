@@ -267,11 +267,11 @@ public partial class MainWindow : Window
     {
         if(_lesson==null)return;
         StepTitle.Text=_lesson.Current.Title;
-        StepHint.Text=_lesson.StepComplete?(_lesson.IsLast?"تمرین به پایان رسید؛ اگر انجام دادید، تأیید کنید.":"اگر این حرکت را انجام دادید، تأیید کنید؛ حرکت بعدی خودکار نمایش داده می‌شود."):_lesson.Current.Hint;
+        StepHint.Text=_lesson.StepComplete?(_lesson.IsLast?(_lesson.Kind==ReminderKind.Move?"در صورت امکان، ۵ تا ۱۰ دقیقه فعالیتی دور از نمایشگر انجام دهید.":"تمرین به پایان رسید؛ اگر انجام دادید، تأیید کنید."):"اگر این حرکت را انجام دادید، تأیید کنید؛ حرکت بعدی خودکار نمایش داده می‌شود."):_lesson.Current.Hint;
         StepNumber.Text=$"{_lesson.Current.Group} · {FaNumber(_lesson.Index+1)} از {FaNumber(_lesson.Steps.Count)}";
         StepTitle.ToolTip="راهنمای حرکت: "+_lesson.Current.Source;
         Countdown.Text=_lesson.StepComplete?$"{(_lesson.IsLast?"پایان":"بعدی")} · {FaNumber(_lesson.TransitionRemaining)} ثانیه {(_lesson.Running?"Ⅱ":"▶")}":$"{FaNumber(_lesson.Remaining)} ثانیه {(_lesson.Running?"Ⅱ":"▶")}";
-        DoneButton.Content=_lesson.IsLast?"پایان تمرین ✓":"انجام دادم؛ بعدی";
+        DoneButton.Content=_lesson.IsLast?"انجام دادم ✓":"انجام دادم؛ بعدی";
         double progress=100*_lesson.Progress,displayed=LessonProgress.Value;
         LessonProgress.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty,null);
         LessonProgress.Value=progress;
