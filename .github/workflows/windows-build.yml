@@ -23,8 +23,9 @@ jobs:
       - name: Headless startup self-test
         shell: pwsh
         run: |
-          & ".\release\Ergonomy-win-x64\Ergonomy.exe" --self-test
-          if ($LASTEXITCODE -ne 0) { throw "Ergonomy self-test returned exit code $LASTEXITCODE" }
+          $testExe = Join-Path $PWD "release\Ergonomy-win-x64\Ergonomy.exe"
+          $proc = Start-Process -FilePath $testExe -ArgumentList "--self-test" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Ergonomy self-test returned exit code $($proc.ExitCode)" }
       - name: Upload Windows test package
         uses: actions/upload-artifact@v4
         with:
