@@ -279,6 +279,24 @@ public partial class MainWindow : Window
             if(!IsVisible||!_shown)throw new InvalidOperationException("Real top-right pointer reveal failed.");
         });
         _reveal.Hide();Conceal(immediate:true);
+        void Pump(int milliseconds)
+        {
+            var frame=new DispatcherFrame();
+            var stop=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(milliseconds)};
+            stop.Tick+=(_,_)=>{stop.Stop();frame.Continue=false;};
+            stop.Start();Dispatcher.PushFrame(frame);
+        }
+        ShowCoach(ReminderKind.Move,true);
+        for(int i=0;i<7;i++)_lesson!.Advance(1);
+        _settings.ReducedMotion=false;_settings.AnimationsEnabled=true;_quiet=false;
+        SetMotion();
+        double before=CoachBuddy.AnimationClock;Capture("motion-walk-before");
+        Pump(420);Capture("motion-walk-after");
+        if(CoachBuddy.AnimationClock<=before+.15)throw new InvalidOperationException("Instructional animation clock did not run.");
+        Conceal(immediate:true);double stopped=CoachBuddy.AnimationClock;
+        Pump(250);
+        if(CoachBuddy.AnimationClock!=stopped)throw new InvalidOperationException("Hidden character still animating.");
+        if(_lesson!=null)_lesson.Running=false;
         _engine.Dispose();
     }
 }

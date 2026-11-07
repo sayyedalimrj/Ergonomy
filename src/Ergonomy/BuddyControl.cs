@@ -17,6 +17,7 @@ public sealed class BuddyControl : FrameworkElement
 {
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(83) };
     private double _phase;
+    internal double AnimationClock => _phase;
     private BuddyKind _kind;
     private BuddyState _state;
     public BuddyKind Kind
