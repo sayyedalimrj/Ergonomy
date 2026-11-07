@@ -26,7 +26,7 @@ public partial class MainWindow : Window
 
     private const double CompactHeight = 92;
 
-    public MainWindow()
+    public MainWindow(bool diagnosticOnly = false)
     {
         InitializeComponent();
         _settings = SettingsStore.Load();
@@ -44,17 +44,20 @@ public partial class MainWindow : Window
         HydrationToggle.IsChecked = _settings.WaterEnabled;
         _ready = true;
 
-        InitTraySafely();
-        SettingsStore.EnsureStartup(_settings.AutoStart);
-        _engine.Start();
-        _uiTick.Start();
-        Loaded += (_, _) =>
+        if (!diagnosticOnly)
         {
-            PositionDock();
-            UpdateStatus();
-            Diagnostics.Record("ui", "Dock loaded and visible.");
-        };
-        SystemEventsSafeSubscribe();
+            InitTraySafely();
+            SettingsStore.EnsureStartup(_settings.AutoStart);
+            _engine.Start();
+            _uiTick.Start();
+            Loaded += (_, _) =>
+            {
+                PositionDock();
+                UpdateStatus();
+                Diagnostics.Record("ui", "Dock loaded and visible.");
+            };
+            SystemEventsSafeSubscribe();
+        }
     }
 
     private void SystemEventsSafeSubscribe()

@@ -34,6 +34,14 @@ public partial class App : System.Windows.Application
                 return;
             }
 
+            if (e.Args.Any(x => x.Equals("--ui-self-test", StringComparison.OrdinalIgnoreCase)))
+            {
+                _ = new MainWindow(diagnosticOnly: true);
+                Diagnostics.Record("ui-self-test", "PASS: WPF visual tree instantiated.");
+                Shutdown(0);
+                return;
+            }
+
             _singleInstance = new Mutex(true, @"Local\Ergonomy.GlassDock.V2", out var first);
             if (!first) { Shutdown(0); return; }
 
@@ -45,7 +53,8 @@ public partial class App : System.Windows.Application
         catch (Exception ex)
         {
             Diagnostics.Record("startup-failure", ex);
-            MessageBox.Show("Ergonomy could not start. A detailed log was written to:\n" + Diagnostics.LogPath +
+            if (!e.Args.Any(x => x.Contains("self-test", StringComparison.OrdinalIgnoreCase)))
+                MessageBox.Show("Ergonomy could not start. A detailed log was written to:\n" + Diagnostics.LogPath +
                 "\n\n" + ex.Message, "Ergonomy startup", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
