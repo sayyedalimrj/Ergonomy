@@ -13,7 +13,7 @@ public sealed record HistoryEntry(DateTimeOffset Time, ReminderKind Kind, Remind
 }
 public static class HistoryStore
 {
-    private static readonly string FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Ergonomy","history.json");
+    private static readonly string FilePath = Path.Combine(LocalData.Root,"history.json");
     public static List<HistoryEntry> Load()
     {
         try {return (JsonSerializer.Deserialize<List<HistoryEntry>>(File.ReadAllText(FilePath)) ?? []).TakeLast(200).ToList();}

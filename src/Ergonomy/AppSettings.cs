@@ -7,9 +7,7 @@ namespace Ergonomy;
 
 public static class SettingsStore
 {
-    private static readonly string SettingsPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Ergonomy", "settings.json");
+    private static readonly string SettingsPath = Path.Combine(LocalData.Root, "settings.json");
     private const string StartupKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     public static AppSettings Load()
@@ -63,4 +61,9 @@ public static class SettingsStore
         catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
         { Diagnostics.Record("startup-registry", ex); }
     }
+}
+
+public static class LocalData
+{
+    public static string Root => Environment.GetEnvironmentVariable("ERGONOMY_DATA_ROOT") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Ergonomy");
 }

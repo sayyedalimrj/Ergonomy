@@ -329,6 +329,8 @@ public partial class MainWindow : Window
     private void EyeCountdown_Click(object sender, RoutedEventArgs e)
     {
         _eyeSeconds = 20;
+        CoachBuddy.State = BuddyState.Resting;
+        _reactionUntil = DateTimeOffset.UtcNow.AddSeconds(20);
         EyeCountdownButton.IsEnabled = false;
         EyeCountdownButton.Content = "۲۰ ثانیه";
         _eyeTimer.Start();
@@ -458,6 +460,8 @@ public partial class MainWindow : Window
         if (!_ready) return;
         _settings.Buddy = (BuddyKind)Math.Clamp(BuddyPicker.SelectedIndex, 0, 3);
         SaveMotion();
+        DockBuddy.State=CoachBuddy.State=BuddyState.Happy;
+        _reactionUntil=DateTimeOffset.UtcNow.AddSeconds(3);
     }
     private void Motion_Changed(object sender, RoutedEventArgs e)
     {

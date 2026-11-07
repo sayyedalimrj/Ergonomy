@@ -13,6 +13,8 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if(e.Args.Any(x => x.Contains("self-test", StringComparison.OrdinalIgnoreCase)))
+            Environment.SetEnvironmentVariable("ERGONOMY_DATA_ROOT", Path.Combine(Path.GetTempPath(), "Ergonomy-test", Guid.NewGuid().ToString("N")));
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             Diagnostics.Record("unhandled-domain", args.ExceptionObject as Exception);
         DispatcherUnhandledException += OnDispatcherException;
@@ -29,7 +31,15 @@ public partial class App : System.Windows.Application
                 var settings = SettingsStore.Load();
                 if (settings.EyeMinutes <= 0 || settings.MoveMinutes <= 0)
                     throw new InvalidOperationException("Invalid built-in reminder schedule.");
-                Diagnostics.Record("self-test", "PASS: catalog, settings, startup");
+                settings.EyeMinutes = 27; settings.ReducedMotion = true;
+                SettingsStore.Save(settings);
+                var loaded = SettingsStore.Load();
+                if(loaded.EyeMinutes != 27 || !loaded.ReducedMotion) throw new InvalidOperationException("Settings round trip failed.");
+                HistoryStore.Save([new(DateTimeOffset.Now, ReminderKind.Eye, ReminderResponse.Done)]);
+                if(HistoryStore.Load().Count != 1) throw new InvalidOperationException("History round trip failed.");
+                File.WriteAllText(Path.Combine(LocalData.Root, "settings.json"), "{broken");
+                if(SettingsStore.Load().EyeMinutes != 20) throw new InvalidOperationException("Settings corruption fallback failed.");
+                Diagnostics.Record("self-test", "PASS: catalog, settings round trip, history round trip, corrupt JSON fallback, startup");
                 Shutdown(0);
                 return;
             }
@@ -86,9 +96,7 @@ public partial class App : System.Windows.Application
 
 public static class Diagnostics
 {
-    public static readonly string LogPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Ergonomy", "logs", "app.log");
+    public static readonly string LogPath = Path.Combine(LocalData.Root, "logs", "app.log");
 
     public static void Record(string tag, Exception? exception) =>
         Record(tag, exception?.ToString() ?? "(no exception details)");
