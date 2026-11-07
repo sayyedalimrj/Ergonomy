@@ -1,7 +1,7 @@
 [Setup]
 AppId=Ergonomy.WellnessDock
 AppName=Ergonomy
-AppVersion=0.3.0
+AppVersion=0.4.0
 AppPublisher=Ergonomy
 DefaultDirName={localappdata}\Programs\Ergonomy
 DefaultGroupName=Ergonomy
@@ -9,7 +9,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release
-OutputBaseFilename=Ergonomy-0.3.0-rc.1-setup-x64
+OutputBaseFilename=Ergonomy-0.4.0-rc.1-setup-x64
 Compression=lzma2
 SolidCompression=yes
 UninstallDisplayIcon={app}\Ergonomy.exe

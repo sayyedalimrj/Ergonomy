@@ -1,7 +1,7 @@
 name: Windows wellness build
 on:
   push:
-    branches: [main, feat/windows-hse-mvp, feat/glass-dock-v2, feat/wellness-dock-v3]
+    branches: [main, feat/windows-hse-mvp, feat/glass-dock-v2, feat/minimal-corner-v4]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -48,7 +48,7 @@ jobs:
             New-Item -ItemType Directory -Force test-evidence | Out-Null
             $samples | Export-Csv test-evidence/lifecycle-resources.csv -NoTypeInformation
             $log = Get-Content (Join-Path $env:LOCALAPPDATA 'Ergonomy/logs/app.log') -Raw
-            if ($log -notmatch 'Dock loaded and visible' -or $log -notmatch 'startup') { throw 'Normal startup did not finish' }
+            if ($log -notmatch 'Corner host initialized' -or $log -notmatch 'startup') { throw 'Normal startup did not finish' }
           } finally {
             if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
           }
@@ -58,7 +58,7 @@ jobs:
           Copy-Item docs release/Ergonomy-win-x64/docs -Recurse
           Copy-Item scripts/Install-Ergonomy.ps1,scripts/Uninstall-Ergonomy.ps1,scripts/Test-ErgonomyPilot.ps1 release/Ergonomy-win-x64/
           Copy-Item README.md,CHANGELOG.md release/Ergonomy-win-x64/
-          Compress-Archive release/Ergonomy-win-x64/* release/Ergonomy-0.3.0-rc.1-win-x64.zip
+          Compress-Archive release/Ergonomy-win-x64/* release/Ergonomy-0.4.0-rc.1-win-x64.zip
       - name: User-level installer
         shell: pwsh
         run: |
@@ -69,7 +69,7 @@ jobs:
       - name: Install, test installed executable and uninstall
         shell: pwsh
         run: |
-          $setup = Join-Path $PWD 'release/Ergonomy-0.3.0-rc.1-setup-x64.exe'
+          $setup = Join-Path $PWD 'release/Ergonomy-0.4.0-rc.1-setup-x64.exe'
           $target = Join-Path $env:RUNNER_TEMP 'Ergonomy-installed-smoke'
           $proc = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"$target`"" -Wait -PassThru
           if ($proc.ExitCode -ne 0) { throw "Setup failed: $($proc.ExitCode)" }
@@ -94,13 +94,13 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ergonomy-0.3.0-rc.1-windows-evidence
+          name: Ergonomy-0.4.0-rc.1-windows-evidence
           path: |
             release/*.*
             test-evidence/
           if-no-files-found: error
   prerelease:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/wellness-dock-v3'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/minimal-corner-v4'
     needs: windows
     runs-on: ubuntu-latest
     permissions:
@@ -109,19 +109,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: Ergonomy-0.3.0-rc.1-windows-evidence
+          name: Ergonomy-0.4.0-rc.1-windows-evidence
           path: artifacts
       - name: Publish candidate, never label desktop pilot passed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          current_head=$(git ls-remote origin refs/heads/feat/wellness-dock-v3 | cut -f1)
+          current_head=$(git ls-remote origin refs/heads/feat/minimal-corner-v4 | cut -f1)
           if [ "$current_head" != "$GITHUB_SHA" ]; then
             echo 'A newer candidate exists; skip publishing this obsolete build.'
             exit 0
           fi
-          candidate_tag="v0.3.0-rc.1-${GITHUB_SHA:0:7}"
+          candidate_tag="v0.4.0-rc.1-${GITHUB_SHA:0:7}"
           if ! gh release view "$candidate_tag" >/dev/null 2>&1; then
-            gh release create "$candidate_tag" --target "$GITHUB_SHA" --prerelease --title "Ergonomy 0.3.0 RC1 (${GITHUB_SHA:0:7}) — Windows pilot required" --notes-file docs/RELEASE-NOTES.md
+            gh release create "$candidate_tag" --target "$GITHUB_SHA" --prerelease --title "Ergonomy 0.4.0 RC1 (${GITHUB_SHA:0:7}) — Windows pilot required" --notes-file docs/RELEASE-NOTES.md
           fi
           gh release upload "$candidate_tag" artifacts/release/* --clobber

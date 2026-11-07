@@ -1,5 +1,7 @@
-Ergonomy 0.3.0 RC1 adds native animated buddies, automatic active-time coaching, local history and quiet fullscreen behavior to the existing WPF glass dock.
+Ergonomy 0.4 RC — Minimal Corner
 
-Download the portable ZIP and extract it, or run the per-user setup (no administrator needed). Both are unsigned. SHA256SUMS.txt accompanies the package. No paid service, network connection, account or external .NET installation is needed to run the self-contained app.
+A fully concealed top-right assistant that reveals on corner hover or reminder. Smaller coaching cards, two response buttons, short Persian instructions, embedded IRANYekanX, Windows 11 native backdrop request with a contrast fallback, and staged eye/body demonstrations.
 
-The release workflow requires behavioral tests, WPF build, published startup test and rendered-WPF smoke before publishing. These are not a physical Windows 11 desktop acceptance test. Read docs/WINDOWS-PILOT.md and QUALITY-REPORT.md. This is a prerelease candidate: native Mica/Acrylic blur, light theme, provider-specific meeting detection and real mixed-DPI/accessibility/resource validation remain open. Do not label it stable until the manual pilot passes.
+Download the unsigned per-user installer or extract the portable ZIP and run Ergonomy.exe. No separate .NET/font installation or internet is needed. Exit your previous Ergonomy instance from the tray first. Move the pointer to the very top-right of the work area and pause briefly to reveal the pill. Practice and three simple preferences are available from the tray.
+
+Read docs/MINIMAL-CORNER-V4.md and WINDOWS-PILOT.md. CI exercises hidden/hover behavior, Persian font glyphs, instructional poses, reminder controls, normal process lifecycle, settings/history, package installation and removal. Physical Windows 11 mixed-DPI/monitor/fullscreen/blur/accessibility and long-run resource checks still require a desktop pilot. No posture detection, medical diagnosis or code signing is claimed.

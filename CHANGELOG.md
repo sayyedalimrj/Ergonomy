@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0-rc.1 — 2026-11-07
+
+- Fully concealed top-right hover/dwell/retreat; small 320-DIP coaching card.
+- Embedded user-supplied IRANYekanX, shortened Persian instructions and three tray preferences.
+- Native transient Windows 11 backdrop request with an opaque contrast fallback.
+- Staged eye/body animation: blink, far focus, seated shoulder/neck/feet alignment, stand/walk/shoulder motion.
+- Keep the automatic scheduling/history/privacy engine; add corner and lesson behavioral tests.
+- Windows smoke now tests embedded Persian glyphs, hidden state and actual cursor-triggered reveal.
+
+
 ## 0.3.0-rc.1 — 2026-11-07
 
 - Retain and extend glass dock v2 on WPF/.NET 10.
