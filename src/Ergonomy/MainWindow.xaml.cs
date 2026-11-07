@@ -88,9 +88,7 @@ public partial class MainWindow : Window
         MaxHeight=anchor.AvailableHeight;
         WindowsEnvironment.SnapCorner(this);_anchorTop=Top;_anchorLeft=Left;
         if(_edgeHint?.IsVisible==true)WindowsEnvironment.PositionHandle(this,_edgeHint);
-        PreferencesPanel.MaxHeight=Math.Max(120,MaxHeight-100);
         BodyScroll.MaxHeight=Math.Max(100,MaxHeight-78);
-        LibraryScroller.MaxHeight=Math.Max(100,MaxHeight-200);
     }
     private void InitTray()
     {
@@ -309,7 +307,7 @@ public partial class MainWindow : Window
     private void NewPersonal_Click(object sender,RoutedEventArgs e)
     {
         NewPersonalPanel.Visibility=NewPersonalPanel.Visibility==Visibility.Visible?Visibility.Collapsed:Visibility.Visible;FitHeight();
-        if(NewPersonalPanel.Visibility==Visibility.Visible){PreferencesPanel.ScrollToEnd();PersonalTitleInput.Focus();}
+        if(NewPersonalPanel.Visibility==Visibility.Visible){BodyScroll.ScrollToEnd();PersonalTitleInput.Focus();}
     }
     private void AddPersonal_Click(object sender,RoutedEventArgs e)
     {
@@ -319,7 +317,7 @@ public partial class MainWindow : Window
             if(string.IsNullOrWhiteSpace(PersonalTitleInput.Text))throw new ArgumentException("عنوان یادآور را بنویس.");
             _draftCustom.Add(new(){Title=PersonalTitleInput.Text.Trim(),Message=PersonalMessageInput.Text.Trim(),Minutes=SettingsValidation.Minutes(PersonalMinutesInput.Text,1440)});
             PersonalRemindersList.ItemsSource=_draftCustom.ToList();PersonalTitleInput.Clear();PersonalMessageInput.Clear();
-            NewPersonalPanel.Visibility=Visibility.Collapsed;SettingsStatus.Text="به فهرست اضافه شد؛ برای ثبت، ذخیره را بزن.";FitHeight();PreferencesPanel.ScrollToEnd();
+            NewPersonalPanel.Visibility=Visibility.Collapsed;SettingsStatus.Text="به فهرست اضافه شد؛ برای ثبت، ذخیره را بزن.";FitHeight();BodyScroll.ScrollToEnd();
         }
         catch(ArgumentException ex){SettingsStatus.Text=ex.Message;}
     }
@@ -359,7 +357,7 @@ public partial class MainWindow : Window
         if(ExercisesList==null)return;
         var group=(ExerciseFilter.SelectedItem as ListBoxItem)?.Content?.ToString()??"همه";
         ExercisesList.ItemsSource=ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water&&(group=="همه"||x.Group==group)).ToList();
-        if(IsLoaded&&_library){LibraryScroller.ScrollToTop();FitHeight();}
+        if(IsLoaded&&_library){BodyScroll.ScrollToTop();FitHeight();}
     }
     private void Exercise_Click(object sender,RoutedEventArgs e)
     {
@@ -450,6 +448,13 @@ public partial class MainWindow : Window
         if(_lesson.Running)throw new InvalidOperationException("Pause did not stop timer.");
         Timer_Click(this,new RoutedEventArgs());Finish(ReminderResponse.Done,hide:false);
         OpenLibrary();Capture("exercise-library");
+        int VisibleScrollbars(DependencyObject root)
+        {
+            int count=root is System.Windows.Controls.Primitives.ScrollBar {IsVisible:true}?1:0;
+            for(int i=0;i<VisualTreeHelper.GetChildrenCount(root);i++)count+=VisibleScrollbars(VisualTreeHelper.GetChild(root,i));
+            return count;
+        }
+        if(VisibleScrollbars(BodyScroll)!=1)throw new InvalidOperationException("Library should have one scroll surface.");
         if(ExercisesList.Items.Count!=19)throw new InvalidOperationException("Movement catalog is incomplete.");
         if(ExerciseFilter.Items.Count!=7)throw new InvalidOperationException("Movement filter chips missing.");
         ExerciseFilter.SelectedIndex=1;
@@ -470,7 +475,7 @@ public partial class MainWindow : Window
         EyeMinutesInput.Text="۲۲";PersonalTitleInput.Text="یادآور آزمایشی";PersonalMessageInput.Text="وقت تغییر فعالیت است";PersonalMinutesInput.Text="۷";
         AddPersonal_Click(this,new RoutedEventArgs());
         if(_draftCustom.Count!=originalCount+1||_settings.CustomReminders.Count!=originalCount)throw new InvalidOperationException("Reminder draft changed live settings before Save.");
-        PreferencesPanel.ScrollToEnd();Capture("preferences-personal");
+        BodyScroll.ScrollToEnd();Capture("preferences-personal");
         Save_Click(this,new RoutedEventArgs());
         var restored=SettingsStore.Load();
         if(restored.EyeMinutes!=22||restored.CustomReminders.Count!=originalCount+1)throw new InvalidOperationException("Timer/personal reminder persistence failed.");

@@ -107,7 +107,7 @@
      <Button Grid.Column="1" Content="بعداً" Click="Snooze_Click" Margin="8,0,0,0"/>
     </Grid>
    </StackPanel>
-   <ScrollViewer x:Name="PreferencesPanel" Visibility="Collapsed" MaxHeight="430" VerticalScrollBarVisibility="Auto" Margin="0,8,0,8">
+   <StackPanel x:Name="PreferencesPanel" Visibility="Collapsed" Margin="0,8,0,8">
     <StackPanel Margin="0,0,4,0">
      <TextBlock Text="زمان‌بندی یادآورها" FontSize="17" FontWeight="Bold" Margin="0,0,0,10"/>
      <TextBlock Text="فاصله‌ها بر حسب دقیقهٔ فعالیت" Foreground="#BBD5E2" FontSize="10" Margin="0,0,0,9"/>
@@ -142,7 +142,7 @@
      <TextBlock x:Name="SettingsStatus" Foreground="#A4EBD9" TextWrapping="Wrap" FontSize="11" Margin="0,9,0,0"/>
      <Button Content="ذخیرهٔ تنظیمات" Click="Save_Click" Margin="0,12,0,0" Background="#386F63"/>
     </StackPanel>
-   </ScrollViewer>
+   </StackPanel>
    <StackPanel x:Name="LibraryPanel" Visibility="Collapsed" Margin="0,9,0,8">
     <TextBlock Text="حرکت‌های آرام اداری" FontSize="17" FontWeight="Bold"/>
     <TextBlock Text="یک حرکت انتخاب کن؛ آرام و راحت" FontSize="10" Foreground="#BDD6E1" Margin="0,6,0,9"/>
@@ -162,9 +162,9 @@
       <TextBlock Text="برگرفته از چک‌لیست OSHA · خودارزیابی" FontSize="9" Foreground="#BDD6E1"/>
      </StackPanel>
     </Expander>
-    <ScrollViewer x:Name="LibraryScroller" MaxHeight="300" VerticalScrollBarVisibility="Auto"><ItemsControl x:Name="ExercisesList">
+    <ItemsControl x:Name="ExercisesList">
      <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding Title}" Tag="{Binding Motion}" Click="Exercise_Click" Margin="0,0,0,6" Padding="10,10" FontSize="12" HorizontalContentAlignment="Right"/></DataTemplate></ItemsControl.ItemTemplate>
-    </ItemsControl></ScrollViewer>
+    </ItemsControl>
    </StackPanel>
    <StackPanel x:Name="PersonalPanel" Visibility="Collapsed" Margin="0,14,0,4">
     <TextBlock x:Name="PersonalMessageText" TextWrapping="Wrap" Foreground="#DDECF5" FontSize="15" Margin="0,6,0,16"/>
