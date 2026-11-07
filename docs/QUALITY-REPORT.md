@@ -3,10 +3,10 @@
 ## Verified in this execution
 
 - Reviewed MVP PR #1 and source, merged existing glass-dock-v2 work into a new development branch without deleting either branch.
-- Linux x64 host; installed .NET SDK 10.0.403 locally. WPF cross-build succeeded with 0 warnings / 0 errors before final packaging iteration. A later final build result is reported by CI.
+- Linux x64 host; installed .NET SDK 10.0.403 locally. WPF cross-build succeeded with 0 warnings / 0 errors before final packaging iteration. Subsequent Windows CI passed build, published startup smoke, rendering all pages/28 character states, and Inno Setup compilation. The first artifact upload failed due to a cross-drive path; fixed by collecting diagnostics under the workspace. Final run and download status are linked in the handoff.
 - Portable pure-engine executable: 17 behavioral assertions passed (defaults, early/exact due, pending, done, inactive/lock input, suspend gap, quiet delivery, cooldown, snooze, manual practice isolation, pause/resume, disabled categories, hydration).
 - Original WPF vector character renderer and selectable kinds/states compiled. Four families / 28 states created as editable Figma components; Eye family screenshot inspected. This verifies design output, not Windows playback.
-- MagicPath interactive React prototype compiled. It is explicitly labeled a design prototype, not Windows overlay evidence.
+- MagicPath interactive React prototype compiled. Its rendered screenshot was inspected. It is explicitly labeled a design prototype, not Windows overlay evidence.
 
 ## Tool capability checks
 
