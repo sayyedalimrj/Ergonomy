@@ -386,7 +386,7 @@ public partial class MainWindow : Window
     }
     protected override void OnClosing(CancelEventArgs e)
     {
-        if(!_closing){e.Cancel=true;Hide_Click(this,new RoutedEventArgs());return;}
+        if(!_closing&&!_diagnosticOnly){e.Cancel=true;Hide_Click(this,new RoutedEventArgs());return;}
         base.OnClosing(e);
     }
     public void RunUiSelfTest()
@@ -436,6 +436,11 @@ public partial class MainWindow : Window
         Timer_Click(this,new RoutedEventArgs());Finish(ReminderResponse.Done,hide:false);
         OpenLibrary();Capture("exercise-library");
         if(ExercisesList.Items.Count!=19)throw new InvalidOperationException("Movement catalog is incomplete.");
+        ExerciseFilter.IsDropDownOpen=true;ExerciseFilter.UpdateLayout();
+        if(ExerciseFilter.Template.FindName("PART_Popup",ExerciseFilter) is not System.Windows.Controls.Primitives.Popup {IsOpen:true})throw new InvalidOperationException("Movement filter popup did not open.");
+        ExerciseFilter.SelectedIndex=1;ExerciseFilter.IsDropDownOpen=false;
+        if(ExercisesList.Items.Count!=2)throw new InvalidOperationException("Eye movement filter did not apply.");
+        ExerciseFilter.SelectedIndex=0;
         foreach(var exercise in ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water))
         {
             ShowExercise(exercise.Motion);Capture("catalog-"+exercise.Motion);Finish(ReminderResponse.Done,hide:false);
@@ -496,7 +501,7 @@ public partial class MainWindow : Window
         Pump(250);
         if(CoachBuddy.AnimationClock!=stopped)throw new InvalidOperationException("Hidden character still animating.");
         if(_lesson!=null)_lesson.Running=false;
-        _edgeHint?.Close();_engine.Dispose();
+        _edgeHint?.Close();_edgeHint=null;_engine.Dispose();
     }
 }
 internal static class BrushHelpers
