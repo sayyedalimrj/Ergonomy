@@ -51,26 +51,27 @@ internal static class WindowsEnvironment
         var m=Monitor(window);var hwnd=new WindowInteropHelper(window).Handle;
         var dpi=Math.Max(96,GetDpiForWindow(hwnd))/96.0;
         var w=Math.Min(width,(m.Work.Right-m.Work.Left)/dpi-16);
-        return (m.Work.Right/dpi-w-8,m.Work.Top/dpi+8,w,Math.Max(76,(m.Work.Bottom-m.Work.Top)/dpi-16));
+        var offset=SideDockGeometry.Offset(m.Work.Bottom-m.Work.Top,dpi);
+        return (m.Work.Right/dpi-w-8,(m.Work.Top+offset)/dpi,w,Math.Max(76,(m.Work.Bottom-m.Work.Top-offset)/dpi-16));
     }
     public static void SnapCorner(Window window)
     {
         var hwnd=new WindowInteropHelper(window).Handle;var m=Monitor(window);
         var scale=Math.Max(96,GetDpiForWindow(hwnd))/96.0;
-        SetWindowPos(hwnd,IntPtr.Zero,m.Work.Right-(int)Math.Round(window.Width*scale)-8,m.Work.Top+8,0,0,0x0015);
+        SetWindowPos(hwnd,IntPtr.Zero,m.Work.Right-(int)Math.Round(window.Width*scale)-8,m.Work.Top+(int)SideDockGeometry.Offset(m.Work.Bottom-m.Work.Top,scale),0,0,0x0015);
     }
     [DllImport("user32.dll")] private static extern bool SetCursorPos(int x,int y);
     public static void TestCornerPointer(Window window,Action test)
     {
         GetCursorPos(out var before);var m=Monitor(window);
-        try { if(!SetCursorPos(m.Work.Right-8,m.Work.Top+1))throw new InvalidOperationException("Test desktop cursor unavailable.");test(); }
+        try { if(!SetCursorPos(m.Work.Right-1,m.Work.Top+(int)(SideDockGeometry.Offset(m.Work.Bottom-m.Work.Top,Math.Max(96,GetDpiForWindow(new WindowInteropHelper(window).Handle))/96.0)+30)))throw new InvalidOperationException("Test desktop cursor unavailable.");test(); }
         finally { SetCursorPos(before.X,before.Y); }
     }
     public static bool PointerInCorner(Window window)
     {
         if(!GetCursorPos(out var p))return false;
         var m=Monitor(window);var scale=Math.Max(96,GetDpiForWindow(new WindowInteropHelper(window).Handle))/96.0;
-        return p.X>=m.Work.Right-128*scale && p.X<m.Work.Right && p.Y>=m.Work.Top && p.Y<=m.Work.Top+4*scale;
+        return SideDockGeometry.IsHotspot(p.X,p.Y,m.Work.Right,m.Work.Top,m.Work.Bottom-m.Work.Top,scale);
     }
     public static bool PointerOver(Window window)
     {
