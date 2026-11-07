@@ -9,10 +9,12 @@ namespace Ergonomy;
 public partial class App : System.Windows.Application
 {
     private Mutex? _singleInstance;
+    private bool _diagnostic;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        _diagnostic=e.Args.Any(x=>x.Contains("self-test",StringComparison.OrdinalIgnoreCase));
         if(e.Args.Any(x => x.Contains("self-test", StringComparison.OrdinalIgnoreCase)))
             Environment.SetEnvironmentVariable("ERGONOMY_DATA_ROOT", Path.Combine(Path.GetTempPath(), "Ergonomy-test", Guid.NewGuid().ToString("N")));
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -49,7 +51,7 @@ public partial class App : System.Windows.Application
                 var probe = new MainWindow(diagnosticOnly: true);
                 probe.Show();
                 probe.RunUiSelfTest();
-                Diagnostics.Record("ui-self-test", "PASS: hidden host, physical side-edge pointer reveal, compact layout, embedded Yekan glyphs, catalog rendering, personal reminder CRUD, timer persistence, button filters, workstation self-check, edge cue, icon, Persian About and movement navigation exercised.");
+                Diagnostics.Record("ui-self-test", "PASS: hidden host, physical side-edge pointer reveal, compact layout, embedded Yekan glyphs, catalog rendering, personal reminder CRUD, timer persistence, button filters, workstation self-check, posture/water cards, 4/5-second automatic transitions, unconfirmed timeout history, gentle fade, edge cue, icon and Persian About exercised.");
                 Shutdown(0);
                 return;
             }
@@ -76,6 +78,7 @@ public partial class App : System.Windows.Application
     {
         Diagnostics.Record("ui-failure", e.Exception);
         e.Handled = true;
+        if(_diagnostic){Shutdown(1);return;}
         try
         {
             MessageBox.Show("خطایی در همیار سلامت رخ داد. مسیر گزارش:\n" +

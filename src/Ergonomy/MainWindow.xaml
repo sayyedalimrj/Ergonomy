@@ -10,7 +10,7 @@
  <Window.Resources>
   <Style TargetType="Button">
    <Setter Property="Foreground" Value="#EAF7FF"/><Setter Property="FontSize" Value="12"/>
-   <Setter Property="Padding" Value="13,9"/><Setter Property="Cursor" Value="Hand"/>
+   <Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="Padding" Value="13,9"/><Setter Property="Cursor" Value="Hand"/>
    <Setter Property="Background" Value="#26344B"/><Setter Property="BorderBrush" Value="#3D7996AA"/>
    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
     <Border x:Name="B" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="12">
@@ -61,11 +61,11 @@
     <local:BuddyControl x:Name="DockBuddy" Visibility="Collapsed"/>
     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="9,0,5,0">
      <TextBlock x:Name="TitleText" TextTrimming="CharacterEllipsis" Text="همیار سلامت" FontSize="14" FontWeight="Bold"/>
-     <TextBlock x:Name="NextText" TextTrimming="CharacterEllipsis" Text="مراقبت آرام از تو" Foreground="#BBD5E2" FontSize="11" Margin="0,3,0,0"/>
+     <TextBlock x:Name="NextText" TextTrimming="CharacterEllipsis" Text="همراه سلامت روز کاری" Foreground="#BBD5E2" FontSize="11" Margin="0,3,0,0"/>
     </StackPanel>
     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
     <Button x:Name="PlusButton" Content="+" Padding="0" Width="28" Height="28" Background="Transparent" Click="Plus_Click" ToolTip="گزینه‌های سریع" AutomationProperties.Name="باز کردن سه گزینه سریع" Margin="0,0,4,0"/>
-    <Button Content="−" Padding="0" Width="28" Height="28" VerticalAlignment="Center" Background="Transparent" Click="Hide_Click" ToolTip="مخفی‌کردن" AutomationProperties.Name="مخفی کردن در لبه راست"/>
+    <Button Content="›" FontSize="20" Padding="0" Width="28" Height="28" VerticalAlignment="Center" Background="Transparent" Click="Hide_Click" ToolTip="جمع‌شدن به لبهٔ راست" AutomationProperties.Name="مخفی کردن در لبه راست"/>
     </StackPanel>
    </Grid>
    <ScrollViewer x:Name="BodyScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><Grid>
@@ -79,9 +79,9 @@
     <TextBlock Text="طراحی و توسعه" Foreground="#BBD5E2" HorizontalAlignment="Center" FontSize="11" Margin="0,8,0,4"/>
     <TextBlock x:Name="AuthorName" Text="میرجعفری" FlowDirection="LeftToRight" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center"/>
     <TextBlock x:Name="AuthorPhone" Text="۰۹۱۸۶۴۴۱۸۰۱" FlowDirection="LeftToRight" FontSize="16" Foreground="#83E8D0" HorizontalAlignment="Center" Margin="0,8,0,10"/>
-    <TextBlock Text="نسخهٔ ۰٫۷ · همراه آرام روز کاری" Foreground="#BBD5E2" FontSize="10" HorizontalAlignment="Center"/>
+    <TextBlock Text="نسخهٔ ۰٫۸ · همراه آرام روز کاری" Foreground="#BBD5E2" FontSize="10" HorizontalAlignment="Center"/>
     <Expander Header="دربارهٔ راهنمای حرکت‌ها" Foreground="#BDD6E1" FontSize="11" Margin="0,12,0,0" Expanded="Details_Changed" Collapsed="Details_Changed">
-     <TextBlock Text="حرکت‌ها از راهنماهای CCOHS، Mayo Clinic و NHS اقتباس شده‌اند. زمان‌ها پیش‌فرض قابل تنظیم‌اند، نه الزام قانونی یا نسخهٔ درمانی. حرکت را در محدودهٔ راحت انجام بده؛ اگر درد یا ناراحتی ایجاد شد، متوقفش کن." TextWrapping="Wrap" Margin="0,9,0,0"/>
+     <TextBlock Text="حرکت‌ها از راهنماهای CCOHS، Mayo Clinic و NHS اقتباس شده‌اند. زمان‌ها پیش‌فرض قابل تنظیم‌اند، نه الزام قانونی یا نسخهٔ درمانی. حرکت را در محدودهٔ راحت انجام دهید؛ در صورت درد یا ناراحتی، حرکت را متوقف کنید." TextWrapping="Wrap" Margin="0,9,0,0"/>
     </Expander>
    </StackPanel>
    <StackPanel x:Name="LessonPanel" Visibility="Collapsed">
@@ -94,9 +94,9 @@
     <TextBlock x:Name="StepNumber" Foreground="#96B9CB" FontSize="10" HorizontalAlignment="Center" Margin="0,9,0,0"/>
     <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
      <ProgressBar x:Name="LessonProgress" Height="3" Maximum="100" Foreground="#75E5CE" Background="#30485A" BorderThickness="0" VerticalAlignment="Center"/>
-     <Button x:Name="TimerButton" Grid.Column="1" Click="Timer_Click" Background="Transparent" Padding="7,3" Margin="7,0,0,0" ToolTip="مکث، ادامه یا تکرار همین حرکت" AutomationProperties.Name="مکث یا ادامه تایمر حرکت">
+     <StackPanel Grid.Column="1" Orientation="Horizontal"><Button x:Name="TimerButton" Click="Timer_Click" Background="Transparent" Padding="7,3" Margin="7,0,0,0" ToolTip="مکث یا ادامهٔ تمرین و مهلت عبور خودکار" AutomationProperties.Name="مکث یا ادامه تایمر حرکت">
       <TextBlock x:Name="Countdown" Text="" Foreground="#91E7D6" FontSize="11"/>
-     </Button>
+     </Button><Button Content="↻" Click="Repeat_Click" Background="Transparent" Padding="7,3" Margin="4,0,0,0" ToolTip="تکرار همین حرکت" AutomationProperties.Name="تکرار همین حرکت"/></StackPanel>
     </Grid>
     <Grid Margin="0,9,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
      <Button x:Name="PreviousButton" Content="حرکت قبلی" Click="Previous_Click" FontSize="11" Padding="7,7" Background="Transparent"/>
@@ -114,7 +114,7 @@
      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="74"/></Grid.ColumnDefinitions>
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
       <CheckBox x:Name="EyeToggle" Content="استراحت چشم"/><TextBox x:Name="EyeMinutesInput" Grid.Column="1" Margin="0,3" AutomationProperties.Name="فاصله استراحت چشم به دقیقه"/>
-      <CheckBox x:Name="PostureToggle" Grid.Row="1" Content="نشستن و گردن"/><TextBox x:Name="PostureMinutesInput" Grid.Row="1" Grid.Column="1" Margin="0,3" AutomationProperties.Name="فاصله بررسی نشستن به دقیقه"/>
+      <CheckBox x:Name="PostureToggle" Grid.Row="1" Content="وضعیت نشستن"/><TextBox x:Name="PostureMinutesInput" Grid.Row="1" Grid.Column="1" Margin="0,3" AutomationProperties.Name="فاصله بررسی نشستن به دقیقه"/>
       <CheckBox x:Name="MoveToggle" Grid.Row="2" Content="وقفه و حرکت"/><TextBox x:Name="MoveMinutesInput" Grid.Row="2" Grid.Column="1" Margin="0,3" AutomationProperties.Name="فاصله حرکت به دقیقه"/>
       <CheckBox x:Name="WaterToggle" Grid.Row="3" Content="نوشیدن آب"/><TextBox x:Name="WaterMinutesInput" Grid.Row="3" Grid.Column="1" Margin="0,3" AutomationProperties.Name="فاصله یادآور آب به دقیقه"/>
      </Grid>
@@ -144,15 +144,15 @@
     </StackPanel>
    </StackPanel>
    <StackPanel x:Name="LibraryPanel" Visibility="Collapsed" Margin="0,9,0,8">
-    <TextBlock Text="حرکت‌های آرام اداری" FontSize="17" FontWeight="Bold"/>
-    <TextBlock Text="یک حرکت انتخاب کن؛ آرام و راحت" FontSize="10" Foreground="#BDD6E1" Margin="0,6,0,9"/>
+    <TextBlock Text="تمرین‌های کوتاه پشت میز" FontSize="17" FontWeight="Bold"/>
+    <TextBlock Text="حرکت را آرام و در محدودهٔ راحت انجام دهید" FontSize="10" Foreground="#BDD6E1" Margin="0,6,0,9"/>
     <ListBox x:Name="ExerciseFilter" SelectionChanged="ExerciseFilter_Changed" ItemContainerStyle="{StaticResource FilterChip}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" Margin="0,0,0,7" AutomationProperties.Name="دکمه‌های گروه حرکت‌ها">
      <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
-     <ListBoxItem Content="همه"/><ListBoxItem Content="چشم"/><ListBoxItem Content="گردن و شانه"/><ListBoxItem Content="بالاتنه"/><ListBoxItem Content="دست و مچ"/><ListBoxItem Content="نشستن"/><ListBoxItem Content="حرکت و پا"/>
+     <ListBoxItem Content="همه"/><ListBoxItem Content="چشم"/><ListBoxItem Content="گردن"/><ListBoxItem Content="سینه و پشت"/><ListBoxItem Content="دست و مچ"/><ListBoxItem Content="شانه"/><ListBoxItem Content="حرکت و پا"/>
     </ListBox>
     <Expander x:Name="WorkstationDetails" Header="چک سریع میز کار" Foreground="#BDE9DE" FontSize="12" Margin="0,0,0,10" Expanded="Details_Changed" Collapsed="Details_Changed">
      <StackPanel Margin="0,9,0,0">
-      <TextBlock Text="خودت بررسی کن؛ هر مورد آماده است تیک بزن" TextWrapping="Wrap" FontSize="10" Foreground="#BDD6E1"/>
+      <TextBlock Text="موارد مناسب را پس از بررسی علامت بزنید" TextWrapping="Wrap" FontSize="10" Foreground="#BDD6E1"/>
       <CheckBox x:Name="CheckMonitor" Content="مانیتور روبه‌رو؛ بالای آن هم‌سطح چشم یا پایین‌تر" FontSize="10" Checked="Workstation_Changed" Unchecked="Workstation_Changed"/>
       <CheckBox x:Name="CheckBack" Content="کمر تکیه‌گاه دارد؛ شانه‌ها راحت‌اند" FontSize="10" Checked="Workstation_Changed" Unchecked="Workstation_Changed"/>
       <CheckBox x:Name="CheckFeet" Content="کف پا روی زمین یا زیرپایی است" FontSize="10" Checked="Workstation_Changed" Unchecked="Workstation_Changed"/>
@@ -167,9 +167,11 @@
     </ItemsControl>
    </StackPanel>
    <StackPanel x:Name="PersonalPanel" Visibility="Collapsed" Margin="0,14,0,4">
+    <local:ReminderArt x:Name="PromptArt" Width="240" Height="135" Visibility="Collapsed" Margin="0,0,0,12"/>
     <TextBlock x:Name="PersonalMessageText" TextWrapping="Wrap" Foreground="#DDECF5" FontSize="15" Margin="0,6,0,16"/>
+    <TextBlock x:Name="PromptTimeout" Text="" Foreground="#A8C7D4" FontSize="10" Margin="0,0,0,10"/>
     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-     <Button Content="انجام شد ✓" Click="Done_Click" Background="#386F63"/>
+     <Button x:Name="PromptDoneButton" Content="انجام شد ✓" Click="Done_Click" Background="#386F63"/>
      <Button Grid.Column="1" Content="بعداً" Click="Snooze_Click" Margin="8,0,0,0"/>
     </Grid>
    </StackPanel>

@@ -1,7 +1,7 @@
 name: Windows wellness build
 on:
   push:
-    branches: [main, feat/windows-hse-mvp, feat/glass-dock-v2, feat/polish-v7]
+    branches: [main, feat/windows-hse-mvp, feat/glass-dock-v2, feat/review-v8]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -20,7 +20,7 @@ jobs:
       - name: Build
         run: dotnet build src/Ergonomy/Ergonomy.csproj -c Release
       - name: Publish standalone x64
-        run: dotnet publish src/Ergonomy/Ergonomy.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o release/Ergonomy-win-x64
+        run: dotnet publish src/Ergonomy/Ergonomy.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o release/Ergonomy-win-x64
       - name: Published startup and rendered WPF smoke
         shell: pwsh
         env:
@@ -73,13 +73,40 @@ jobs:
           } finally {
             if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
           }
-      - name: Bundle docs and user installation scripts
+      - name: Ultra-compressed portable archives and verified extraction
         shell: pwsh
         run: |
-          Copy-Item docs release/Ergonomy-win-x64/docs -Recurse
-          Copy-Item scripts/Install-Ergonomy.ps1,scripts/Uninstall-Ergonomy.ps1,scripts/Test-ErgonomyPilot.ps1 release/Ergonomy-win-x64/
-          Copy-Item README.md,CHANGELOG.md release/Ergonomy-win-x64/
-          Compress-Archive release/Ergonomy-win-x64/* release/Ergonomy-0.7.0-rc.1-win-x64.zip
+          $candidate = (Get-Command '7z.exe' -ErrorAction SilentlyContinue | Select-Object -First 1)
+          $sevenZip = if ($candidate) { $candidate.Source } else { 'C:\Program Files\7-Zip\7z.exe' }
+          if (!(Test-Path $sevenZip)) { throw '7-Zip is required for maximum-compression release archives' }
+
+          $payload = Join-Path $PWD 'release/Ergonomy-win-x64'
+          Copy-Item docs (Join-Path $payload 'docs') -Recurse
+          Copy-Item scripts/Install-Ergonomy.ps1,scripts/Uninstall-Ergonomy.ps1,scripts/Test-ErgonomyPilot.ps1 $payload/
+          Copy-Item README.md,CHANGELOG.md $payload/
+          # .pdb files are unnecessary in user-facing standalone packages.
+          Get-ChildItem $payload -Filter '*.pdb' -File -Recurse | Remove-Item -Force
+          $portable7z = Join-Path $PWD 'release/Ergonomy-0.8.0-rc.1-portable-win-x64.7z'
+          $portableZip = Join-Path $PWD 'release/Ergonomy-0.8.0-rc.1-portable-win-x64.zip'
+          Push-Location $payload
+          try {
+            & $sevenZip a -t7z $portable7z '*' -r -m0=lzma2 -mx=9 -md=64m -mfb=273 -ms=on -mmt=on
+            if ($LASTEXITCODE -ne 0) { throw '7z Ultra compression failed' }
+            & $sevenZip a -tzip $portableZip '*' -r -mm=Deflate -mx=9
+            if ($LASTEXITCODE -ne 0) { throw 'ZIP maximum compression failed' }
+          } finally { Pop-Location }
+          foreach ($archive in @($portable7z, $portableZip)) {
+            & $sevenZip t $archive
+            if ($LASTEXITCODE -ne 0) { throw "Archive integrity check failed: $archive" }
+          }
+          $verify = Join-Path $env:RUNNER_TEMP 'Ergonomy-portable-verified'
+          New-Item -ItemType Directory -Force $verify | Out-Null
+          & $sevenZip x $portable7z "-o$verify" -y
+          if ($LASTEXITCODE -ne 0) { throw 'Portable extraction failed' }
+          $portableExe = Join-Path $verify 'Ergonomy.exe'
+          if (!(Test-Path $portableExe)) { throw 'Portable package is missing Ergonomy.exe' }
+          $probe = Start-Process -FilePath $portableExe -ArgumentList '--self-test' -Wait -PassThru
+          if ($probe.ExitCode -ne 0) { throw "Extracted portable self-test failed: $($probe.ExitCode)" }
       - name: User-level installer
         shell: pwsh
         run: |
@@ -90,7 +117,7 @@ jobs:
       - name: Install, test installed executable and uninstall
         shell: pwsh
         run: |
-          $setup = Join-Path $PWD 'release/Ergonomy-0.7.0-rc.1-setup-x64.exe'
+          $setup = Join-Path $PWD 'release/Ergonomy-0.8.0-rc.1-setup-x64.exe'
           $target = Join-Path $env:RUNNER_TEMP 'Ergonomy-installed-smoke'
           $proc = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"$target`"" -Wait -PassThru
           if ($proc.ExitCode -ne 0) { throw "Setup failed: $($proc.ExitCode)" }
@@ -101,10 +128,6 @@ jobs:
           $uninstall = Join-Path $target 'unins000.exe'
           $remove = Start-Process -FilePath $uninstall -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
           if ($remove.ExitCode -ne 0 -or (Test-Path $installed)) { throw 'Uninstall failed' }
-      - name: Checksums
-        shell: pwsh
-        run: |
-          Get-ChildItem release -File | ForEach-Object { $h=Get-FileHash $_.FullName -Algorithm SHA256; "$($h.Hash.ToLower())  $($_.Name)" } | Set-Content release/SHA256SUMS.txt
       - name: Collect diagnostics
         if: always()
         shell: pwsh
@@ -118,16 +141,29 @@ jobs:
               Copy-Item $_.FullName (Join-Path 'test-evidence' ('selftest-' + $_.Directory.Parent.Name + '.log'))
             }
           }
+      - name: Reviewer evidence bundle
+        shell: pwsh
+        run: Compress-Archive test-evidence/* release/Ergonomy-0.8.0-review-evidence.zip
+      - name: Checksums and download manifest
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem release -File | Where-Object { $_.Extension -in @('.exe', '.7z', '.zip') }
+          if (($files | Where-Object Name -like '*-setup-x64.exe').Count -ne 1) { throw 'Missing installer' }
+          if (($files | Where-Object Name -like '*-portable-win-x64.7z').Count -ne 1) { throw 'Missing ultra 7z portable' }
+          if (($files | Where-Object Name -like '*-portable-win-x64.zip').Count -ne 1) { throw 'Missing maximum ZIP portable' }
+          $files | Sort-Object Name | ForEach-Object { $h = Get-FileHash $_.FullName -Algorithm SHA256; "$($h.Hash.ToLower())  $($_.Name)" } | Set-Content release/SHA256SUMS.txt
+          $files | Sort-Object Name | Select-Object Name,Length | Format-Table -AutoSize
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ergonomy-0.7.0-rc.1-windows-evidence
+          name: Ergonomy-0.8.0-rc.1-windows-evidence
           path: |
             release/*.*
             test-evidence/
           if-no-files-found: error
   prerelease:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/polish-v7'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/review-v8'
     needs: windows
     runs-on: ubuntu-latest
     permissions:
@@ -136,19 +172,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: Ergonomy-0.7.0-rc.1-windows-evidence
+          name: Ergonomy-0.8.0-rc.1-windows-evidence
           path: artifacts
       - name: Publish candidate, never label desktop pilot passed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          current_head=$(git ls-remote origin refs/heads/feat/polish-v7 | cut -f1)
+          current_head=$(git ls-remote origin refs/heads/feat/review-v8 | cut -f1)
           if [ "$current_head" != "$GITHUB_SHA" ]; then
             echo 'A newer candidate exists; skip publishing this obsolete build.'
             exit 0
           fi
-          candidate_tag="v0.7.0-rc.1-${GITHUB_SHA:0:7}"
+          candidate_tag="v0.8.0-rc.1-${GITHUB_SHA:0:7}"
           if ! gh release view "$candidate_tag" >/dev/null 2>&1; then
-            gh release create "$candidate_tag" --target "$GITHUB_SHA" --prerelease --title "همیار سلامت ۰٫۷ (${GITHUB_SHA:0:7}) — Windows pilot required" --notes-file docs/RELEASE-NOTES.md
+            gh release create "$candidate_tag" --target "$GITHUB_SHA" --prerelease --title "همیار سلامت ۰٫۸ (${GITHUB_SHA:0:7}) — Windows pilot required" --notes-file docs/RELEASE-NOTES.md
           fi
           gh release upload "$candidate_tag" artifacts/release/* --clobber

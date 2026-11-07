@@ -7,7 +7,7 @@ public sealed record HistoryEntry(DateTimeOffset Time, ReminderKind Kind, Remind
     public override string ToString()
     {
         var kind = Kind switch { ReminderKind.Eye => "چشم", ReminderKind.Posture => "نشستن", ReminderKind.Move => "حرکت", ReminderKind.Custom=>"یادآور شخصی", _ => "آب" };
-        var action = Response switch { ReminderResponse.Done => "انجام شد", ReminderResponse.Snooze => "تعویق", _ => "رد یا پایان زمان" };
+        var action = Response switch { ReminderResponse.Done => "تأیید کاربر", ReminderResponse.Snooze => "تعویق", ReminderResponse.TimedOut=>"پایان خودکار؛ بدون تأیید", _ => "بسته شد" };
         return $"{Time.ToLocalTime():MM/dd HH:mm} · {kind} · {action}";
     }
 }

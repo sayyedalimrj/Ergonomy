@@ -1,3 +1,12 @@
+## 0.8.0 — 2026-11-07
+- Add 4-second post-exercise automatic transitions and a 5-second final grace, with pause/repeat and exact boundary tests.
+- Make Done advance one exercise; record automatic closure as TimedOut, never user-confirmed Done.
+- Separate posture self-checks and optional water reminders from real movement routines; add a dedicated glass-of-water illustration.
+- Replace static sitting/feet entries with bilateral shoulder stretches and split ankle motion by side: 20 exercise entries with rewritten Persian instructions.
+- Rework chin, shoulder, forward reach and seated ankle illustrations; align source mappings and documentation for specialist review.
+- Use pre-show opacity zero, a 550/750 ms gentle fade and short rightward slide; replace minus with a right-collapse chevron.
+- Add a review brief, exercise/source matrix, native timer/fade/timeout tests and a downloadable evidence bundle.
+
 ## 0.7.0 — 2026-11-07
 - Replace dropdown exercise filtering with keyboard-accessible wrapping category chips.
 - Add an optional five-item workstation self-check adapted from OSHA, with a local session tally rather than a health score.

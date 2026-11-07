@@ -1,6 +1,6 @@
 namespace Ergonomy;
 public enum ReminderKind { Eye, Posture, Move, Water, Custom }
-public enum ReminderResponse { Done, Snooze, Dismissed }
+public enum ReminderResponse { Done, Snooze, Dismissed, TimedOut }
 
 /// <summary>One active-work scheduler for both built-in and user-created reminders.</summary>
 public sealed class WellnessSchedule
