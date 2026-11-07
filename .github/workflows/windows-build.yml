@@ -32,6 +32,26 @@ jobs:
             if (!$proc.WaitForExit(90000)) { $proc.Kill(); throw "Timeout: $mode" }
             if ($proc.ExitCode -ne 0) { throw "$mode exited $($proc.ExitCode)" }
           }
+      - name: Normal tray and timer lifecycle smoke
+        shell: pwsh
+        run: |
+          $testExe = Join-Path $PWD 'release/Ergonomy-win-x64/Ergonomy.exe'
+          $proc = Start-Process -FilePath $testExe -PassThru
+          $samples = @()
+          try {
+            for ($i=0; $i -lt 10; $i++) {
+              Start-Sleep -Seconds 2
+              $proc.Refresh()
+              if ($proc.HasExited) { throw "Normal application exited unexpectedly: $($proc.ExitCode)" }
+              $samples += [pscustomobject]@{Seconds=($i+1)*2;CPUSeconds=$proc.TotalProcessorTime.TotalSeconds;PrivateBytes=$proc.PrivateMemorySize64;WorkingSetBytes=$proc.WorkingSet64;Handles=$proc.HandleCount}
+            }
+            New-Item -ItemType Directory -Force test-evidence | Out-Null
+            $samples | Export-Csv test-evidence/lifecycle-resources.csv -NoTypeInformation
+            $log = Get-Content (Join-Path $env:LOCALAPPDATA 'Ergonomy/logs/app.log') -Raw
+            if ($log -notmatch 'Dock loaded and visible' -or $log -notmatch 'startup') { throw 'Normal startup did not finish' }
+          } finally {
+            if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force }
+          }
       - name: Bundle docs and user installation scripts
         shell: pwsh
         run: |
@@ -46,6 +66,20 @@ jobs:
           if (!(Test-Path $iscc)) { throw 'Inno Setup is missing from this runner.' }
           & $iscc packaging/Ergonomy.iss
           if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+      - name: Install, test installed executable and uninstall
+        shell: pwsh
+        run: |
+          $setup = Join-Path $PWD 'release/Ergonomy-0.3.0-rc.1-setup-x64.exe'
+          $target = Join-Path $env:RUNNER_TEMP 'Ergonomy-installed-smoke'
+          $proc = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=`"$target`"" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Setup failed: $($proc.ExitCode)" }
+          $installed = Join-Path $target 'Ergonomy.exe'
+          if (!(Test-Path $installed)) { throw 'Installed executable missing' }
+          $probe = Start-Process -FilePath $installed -ArgumentList '--self-test' -Wait -PassThru
+          if ($probe.ExitCode -ne 0) { throw 'Installed executable startup test failed' }
+          $uninstall = Join-Path $target 'unins000.exe'
+          $remove = Start-Process -FilePath $uninstall -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          if ($remove.ExitCode -ne 0 -or (Test-Path $installed)) { throw 'Uninstall failed' }
       - name: Checksums
         shell: pwsh
         run: |
