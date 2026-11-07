@@ -154,8 +154,10 @@ public partial class MainWindow : Window
         {
             var duration=TimeSpan.FromMilliseconds(interactive?550:750);
             BeginAnimation(LeftProperty,new DoubleAnimation(_anchorLeft+28,_anchorLeft,duration){EasingFunction=new SineEase{EasingMode=EasingMode.EaseInOut},FillBehavior=FillBehavior.Stop});
-            Opacity=1;
-            BeginAnimation(OpacityProperty,new DoubleAnimation(0,1,duration){EasingFunction=new SineEase{EasingMode=EasingMode.EaseInOut},FillBehavior=FillBehavior.Stop});
+            int enteringTransition=_transition;
+            var fade=new DoubleAnimation(0,1,duration){EasingFunction=new SineEase{EasingMode=EasingMode.EaseInOut},FillBehavior=FillBehavior.HoldEnd};
+            fade.Completed+=(_,_)=>{if(enteringTransition==_transition&&_shown){Opacity=1;BeginAnimation(OpacityProperty,null);}};
+            BeginAnimation(OpacityProperty,fade);
         }
     }
     private void FitHeight()
@@ -169,16 +171,18 @@ public partial class MainWindow : Window
     }
     private void Conceal(bool immediate=false)
     {
+        double visibleOpacity=Opacity,visibleLeft=Left;
         _transition++;int transition=_transition;
         _shown=false;_reveal.Hide();_quick=false;_about=false;_library=false;
         QuickActions.Visibility=Visibility.Collapsed;AboutPanel.Visibility=Visibility.Collapsed;PlusButton.Content="+";
         CoachBuddy.Animate=DockBuddy.Animate=false;CoachBuddy.Refresh();DockBuddy.Refresh();
         BeginAnimation(LeftProperty,null);BeginAnimation(OpacityProperty,null);
+        Left=visibleLeft;Opacity=visibleOpacity;
         if(immediate||!MotionAllowed||!IsVisible){Hide();Left=_anchorLeft;UpdateEdgeHint();return;}
         var slide=new DoubleAnimation(Left,_anchorLeft+40,TimeSpan.FromMilliseconds(400)){EasingFunction=new SineEase{EasingMode=EasingMode.EaseInOut},FillBehavior=FillBehavior.Stop};
         slide.Completed+=(_,_)=>{if(transition==_transition){Hide();Left=_anchorLeft;UpdateEdgeHint();}};
         BeginAnimation(LeftProperty,slide);
-        BeginAnimation(OpacityProperty,new DoubleAnimation(1,0,TimeSpan.FromMilliseconds(400)){FillBehavior=FillBehavior.Stop});
+        BeginAnimation(OpacityProperty,new DoubleAnimation(visibleOpacity,0,TimeSpan.FromMilliseconds(400)){FillBehavior=FillBehavior.HoldEnd});
     }
     private bool MotionAllowed=>_settings.AnimationsEnabled&&!_settings.ReducedMotion&&SystemParameters.ClientAreaAnimation;
     private void SetMotion()
