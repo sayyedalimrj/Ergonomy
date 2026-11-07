@@ -4,7 +4,7 @@ using System.Windows.Input;
 using System.Windows.Controls;
 using Button=System.Windows.Controls.Button;
 using TextBox=System.Windows.Controls.TextBox;
-using ComboBoxItem=System.Windows.Controls.ComboBoxItem;
+using ListBoxItem=System.Windows.Controls.ListBoxItem;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -88,9 +88,7 @@ public partial class MainWindow : Window
         MaxHeight=anchor.AvailableHeight;
         WindowsEnvironment.SnapCorner(this);_anchorTop=Top;_anchorLeft=Left;
         if(_edgeHint?.IsVisible==true)WindowsEnvironment.PositionHandle(this,_edgeHint);
-        PreferencesPanel.MaxHeight=Math.Max(120,MaxHeight-100);
         BodyScroll.MaxHeight=Math.Max(100,MaxHeight-78);
-        LibraryScroller.MaxHeight=Math.Max(100,MaxHeight-200);
     }
     private void InitTray()
     {
@@ -234,9 +232,14 @@ public partial class MainWindow : Window
         if(_lesson==null)return;
         StepTitle.Text=_lesson.Current.Title;
         StepHint.Text=_lesson.StepComplete?(_lesson.Finished?(_lesson.Kind==ReminderKind.Move?"اگر می‌توانی، ۵ تا ۱۰ دقیقه تغییر فعالیت بده":"اگر انجامش دادی، تأیید کن"):"آماده‌ای؟ حرکت بعدی را بزن"):_lesson.Current.Hint;
-        StepNumber.Text=$"حرکت {FaNumber(_lesson.Index+1)} از {FaNumber(_lesson.Steps.Count)}";
+        StepNumber.Text=$"{_lesson.Current.Group} · {FaNumber(_lesson.Index+1)} از {FaNumber(_lesson.Steps.Count)}";
+        StepTitle.ToolTip="راهنمای حرکت: "+_lesson.Current.Source;
         Countdown.Text=_lesson.StepComplete?"↻ تکرار":$"{FaNumber(_lesson.Remaining)} ثانیه {(_lesson.Running?"Ⅱ":"▶")}";
-        LessonProgress.Value=100*_lesson.Progress;
+        double progress=100*_lesson.Progress,displayed=LessonProgress.Value;
+        LessonProgress.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty,null);
+        LessonProgress.Value=progress;
+        if(MotionAllowed&&_lesson.Running&&progress>displayed&&progress-displayed<30)
+            LessonProgress.BeginAnimation(System.Windows.Controls.Primitives.RangeBase.ValueProperty,new DoubleAnimation(displayed,progress,TimeSpan.FromMilliseconds(350)){EasingFunction=new CubicEase{EasingMode=EasingMode.EaseOut},FillBehavior=FillBehavior.Stop});
         PreviousButton.IsEnabled=_lesson.Index>0;
         NextButton.IsEnabled=_lesson.Index+1<_lesson.Steps.Count;
         NextButton.Content=NextButton.IsEnabled?"حرکت بعدی":"آخرین حرکت";
@@ -304,7 +307,7 @@ public partial class MainWindow : Window
     private void NewPersonal_Click(object sender,RoutedEventArgs e)
     {
         NewPersonalPanel.Visibility=NewPersonalPanel.Visibility==Visibility.Visible?Visibility.Collapsed:Visibility.Visible;FitHeight();
-        if(NewPersonalPanel.Visibility==Visibility.Visible){PreferencesPanel.ScrollToEnd();PersonalTitleInput.Focus();}
+        if(NewPersonalPanel.Visibility==Visibility.Visible){BodyScroll.ScrollToEnd();PersonalTitleInput.Focus();}
     }
     private void AddPersonal_Click(object sender,RoutedEventArgs e)
     {
@@ -314,7 +317,7 @@ public partial class MainWindow : Window
             if(string.IsNullOrWhiteSpace(PersonalTitleInput.Text))throw new ArgumentException("عنوان یادآور را بنویس.");
             _draftCustom.Add(new(){Title=PersonalTitleInput.Text.Trim(),Message=PersonalMessageInput.Text.Trim(),Minutes=SettingsValidation.Minutes(PersonalMinutesInput.Text,1440)});
             PersonalRemindersList.ItemsSource=_draftCustom.ToList();PersonalTitleInput.Clear();PersonalMessageInput.Clear();
-            NewPersonalPanel.Visibility=Visibility.Collapsed;SettingsStatus.Text="به فهرست اضافه شد؛ برای ثبت، ذخیره را بزن.";FitHeight();PreferencesPanel.ScrollToEnd();
+            NewPersonalPanel.Visibility=Visibility.Collapsed;SettingsStatus.Text="به فهرست اضافه شد؛ برای ثبت، ذخیره را بزن.";FitHeight();BodyScroll.ScrollToEnd();
         }
         catch(ArgumentException ex){SettingsStatus.Text=ex.Message;}
     }
@@ -352,9 +355,9 @@ public partial class MainWindow : Window
     private void ExerciseFilter_Changed(object sender,SelectionChangedEventArgs e)
     {
         if(ExercisesList==null)return;
-        var group=(ExerciseFilter.SelectedItem as ComboBoxItem)?.Content?.ToString()??"همه";
+        var group=(ExerciseFilter.SelectedItem as ListBoxItem)?.Content?.ToString()??"همه";
         ExercisesList.ItemsSource=ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water&&(group=="همه"||x.Group==group)).ToList();
-        if(IsLoaded&&_library){LibraryScroller.ScrollToTop();FitHeight();}
+        if(IsLoaded&&_library){BodyScroll.ScrollToTop();FitHeight();}
     }
     private void Exercise_Click(object sender,RoutedEventArgs e)
     {
@@ -363,7 +366,7 @@ public partial class MainWindow : Window
     private void ShowExercise(ExerciseMotion motion)
     {
         ShowCoach(ReminderKind.Move,true);
-        var group=(ExerciseFilter.SelectedItem as ComboBoxItem)?.Content?.ToString()??"همه";
+        var group=(ExerciseFilter.SelectedItem as ListBoxItem)?.Content?.ToString()??"همه";
         var library=ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water&&(group=="همه"||x.Group==group)).ToList();
         _lesson=new ExerciseLesson(ReminderKind.Move,library,library.FindIndex(x=>x.Motion==motion)){Running=true};
         CoachBuddy.Lesson=_lesson;_promptText="تمرین آرام";UpdateLesson();Reveal(true,true,animate:false);
@@ -375,6 +378,16 @@ public partial class MainWindow : Window
         _active=ReminderKind.Custom;_practice=practice;_lesson=null;CoachBuddy.Lesson=null;
         _preferences=false;_quick=false;_about=false;_library=false;_alertAge=0;_lastTick=Environment.TickCount64;
         _promptText=custom.Title;PersonalMessageText.Text=string.IsNullOrWhiteSpace(custom.Message)?custom.Title:custom.Message;Reveal(false,practice);
+    }
+    private void Details_Changed(object sender,RoutedEventArgs e)
+    {
+        if(IsLoaded)Dispatcher.BeginInvoke((Action)FitHeight);
+    }
+    private void Workstation_Changed(object sender,RoutedEventArgs e)
+    {
+        if(WorkstationStatus==null)return;
+        int count=new[]{CheckMonitor,CheckBack,CheckFeet,CheckWrists,CheckLight}.Count(x=>x?.IsChecked==true);
+        WorkstationStatus.Text=$"{FaNumber(count)} از ۵ مورد بررسی شد";
     }
     private void ExitApp()
     {
@@ -435,12 +448,24 @@ public partial class MainWindow : Window
         if(_lesson.Running)throw new InvalidOperationException("Pause did not stop timer.");
         Timer_Click(this,new RoutedEventArgs());Finish(ReminderResponse.Done,hide:false);
         OpenLibrary();Capture("exercise-library");
+        int VisibleScrollbars(DependencyObject root)
+        {
+            int count=root is System.Windows.Controls.Primitives.ScrollBar {IsVisible:true}?1:0;
+            for(int i=0;i<VisualTreeHelper.GetChildrenCount(root);i++)count+=VisibleScrollbars(VisualTreeHelper.GetChild(root,i));
+            return count;
+        }
+        if(VisibleScrollbars(BodyScroll)!=1)throw new InvalidOperationException("Library should have one scroll surface.");
         if(ExercisesList.Items.Count!=19)throw new InvalidOperationException("Movement catalog is incomplete.");
-        ExerciseFilter.IsDropDownOpen=true;ExerciseFilter.UpdateLayout();
-        if(ExerciseFilter.Template.FindName("PART_Popup",ExerciseFilter) is not System.Windows.Controls.Primitives.Popup {IsOpen:true})throw new InvalidOperationException("Movement filter popup did not open.");
-        ExerciseFilter.SelectedIndex=1;ExerciseFilter.IsDropDownOpen=false;
+        if(ExerciseFilter.Items.Count!=7)throw new InvalidOperationException("Movement filter chips missing.");
+        ExerciseFilter.SelectedIndex=1;
         if(ExercisesList.Items.Count!=2)throw new InvalidOperationException("Eye movement filter did not apply.");
+        Capture("filter-eye");
         ExerciseFilter.SelectedIndex=0;
+        WorkstationDetails.IsExpanded=true;CheckMonitor.IsChecked=CheckBack.IsChecked=CheckFeet.IsChecked=CheckWrists.IsChecked=CheckLight.IsChecked=true;
+        if(WorkstationStatus.Text!="۵ از ۵ مورد بررسی شد")throw new InvalidOperationException("Workstation self-check tally failed.");
+        Capture("workstation-check");CheckFeet.IsChecked=false;
+        if(WorkstationStatus.Text!="۴ از ۵ مورد بررسی شد")throw new InvalidOperationException("Workstation unchecked tally failed.");
+        WorkstationDetails.IsExpanded=false;
         foreach(var exercise in ExerciseCatalog.All.Where(x=>x.Motion!=ExerciseMotion.Water))
         {
             ShowExercise(exercise.Motion);Capture("catalog-"+exercise.Motion);Finish(ReminderResponse.Done,hide:false);
@@ -450,7 +475,7 @@ public partial class MainWindow : Window
         EyeMinutesInput.Text="۲۲";PersonalTitleInput.Text="یادآور آزمایشی";PersonalMessageInput.Text="وقت تغییر فعالیت است";PersonalMinutesInput.Text="۷";
         AddPersonal_Click(this,new RoutedEventArgs());
         if(_draftCustom.Count!=originalCount+1||_settings.CustomReminders.Count!=originalCount)throw new InvalidOperationException("Reminder draft changed live settings before Save.");
-        PreferencesPanel.ScrollToEnd();Capture("preferences-personal");
+        BodyScroll.ScrollToEnd();Capture("preferences-personal");
         Save_Click(this,new RoutedEventArgs());
         var restored=SettingsStore.Load();
         if(restored.EyeMinutes!=22||restored.CustomReminders.Count!=originalCount+1)throw new InvalidOperationException("Timer/personal reminder persistence failed.");
@@ -497,6 +522,11 @@ public partial class MainWindow : Window
             if(CoachBuddy.AnimationClock<=before+.15)throw new InvalidOperationException("Instructional animation clock did not run.");
         }
         else Diagnostics.Record("motion-test","SKIP live motion: operating system has disabled client-area animations; reduced-motion behavior retained.");
+        if(SystemParameters.ClientAreaAnimation)
+        {
+            ShowExercise(ExerciseMotion.NeckLeft);SetMotion();Capture("neck-neutral");Pump(2400);Capture("neck-hold");
+            if(CoachBuddy.AnimationClock<2)throw new InvalidOperationException("Held neck coaching did not animate.");
+        }
         Conceal(immediate:true);double stopped=CoachBuddy.AnimationClock;
         Pump(250);
         if(CoachBuddy.AnimationClock!=stopped)throw new InvalidOperationException("Hidden character still animating.");

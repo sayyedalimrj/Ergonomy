@@ -49,7 +49,7 @@ public partial class App : System.Windows.Application
                 var probe = new MainWindow(diagnosticOnly: true);
                 probe.Show();
                 probe.RunUiSelfTest();
-                Diagnostics.Record("ui-self-test", "PASS: hidden host, physical side-edge pointer reveal, compact layout, embedded Yekan glyphs, catalog rendering, personal reminder CRUD, timer persistence, edge cue, icon, Persian About and movement navigation exercised.");
+                Diagnostics.Record("ui-self-test", "PASS: hidden host, physical side-edge pointer reveal, compact layout, embedded Yekan glyphs, catalog rendering, personal reminder CRUD, timer persistence, button filters, workstation self-check, edge cue, icon, Persian About and movement navigation exercised.");
                 Shutdown(0);
                 return;
             }

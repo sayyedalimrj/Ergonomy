@@ -12,10 +12,12 @@ using Brushes = System.Windows.Media.Brushes;
 namespace Ergonomy;
 
 
-/// <summary>Original retained vector character. 12 fps only while visible, active and motion allowed.</summary>
+/// <summary>Original vector character. 30 fps only while visible, active and motion allowed.</summary>
 public sealed class BuddyControl : FrameworkElement
 {
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(83) };
+    private readonly DispatcherTimer _timer = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(33) };
+    private long _lastFrame;
+    private static readonly Dictionary<string,SolidColorBrush> Palette=new();
     private double _phase;
     internal double AnimationClock => _phase;
     private BuddyKind _kind;
@@ -43,7 +45,10 @@ public sealed class BuddyControl : FrameworkElement
     public BuddyControl()
     {
         FlowDirection=System.Windows.FlowDirection.LeftToRight;
-        _timer.Tick += (_, _) => { _phase += .083; InvalidateVisual(); };
+        _timer.Tick += (_, _) => {
+            long now=System.Diagnostics.Stopwatch.GetTimestamp();
+            _phase+=Math.Clamp((now-_lastFrame)/(double)System.Diagnostics.Stopwatch.Frequency,0,.1);_lastFrame=now;InvalidateVisual();
+        };
         Loaded += (_, _) => Refresh();
         Unloaded += (_, _) => _timer.Stop();
         IsVisibleChanged += (_, _) => Refresh();
@@ -52,7 +57,8 @@ public sealed class BuddyControl : FrameworkElement
     }
     public void Refresh()
     {
-        if (IsVisible && IsLoaded && Animate && !ReducedMotion && SystemParameters.ClientAreaAnimation) _timer.Start();
+        if (IsVisible && IsLoaded && Animate && !ReducedMotion && SystemParameters.ClientAreaAnimation)
+        {if(!_timer.IsEnabled){_lastFrame=System.Diagnostics.Stopwatch.GetTimestamp();_timer.Start();}}
         else _timer.Stop();
         InvalidateVisual();
     }
@@ -104,7 +110,7 @@ public sealed class BuddyControl : FrameworkElement
         double phase=moving?_phase:0;
         var motion=lesson.Current.Motion;
         if(_lessonStep!=lesson.Index){_lessonStep=lesson.Index;_phase=0;phase=0;}
-        if(DrawOfficeMotion(dc,motion,phase,moving)) {dc.Pop();dc.Pop();return;}
+        if(DrawOfficeMotion(dc,motion,phase,moving,lesson.Current.Seconds)) {dc.Pop();dc.Pop();return;}
         int stage=motion switch {ExerciseMotion.FarFocus or ExerciseMotion.ChinGlide or ExerciseMotion.Walk=>1,ExerciseMotion.Feet or ExerciseMotion.ShoulderRoll=>2,_=>0};
         if(motion is ExerciseMotion.Blink or ExerciseMotion.FarFocus)
         {
@@ -113,12 +119,12 @@ public sealed class BuddyControl : FrameworkElement
             dc.DrawRoundedRectangle(accent,null,new Rect(67,125,90,27),18,18);
             dc.DrawEllipse(skin,null,new Point(112,72),43,48);
             dc.DrawRoundedRectangle(ink,null,new Rect(77,28,70,21),10,10);
-            bool blink=stage==0&&(moving?phase%2.2<.35:false);
+            double blinkCycle=phase%3.2;
+            double eyelid=stage==0&&moving&&blinkCycle<.5?1-Math.Sin(blinkCycle/.5*Math.PI):1;
             double look=stage==1?5:0;
             foreach(var x in new[]{95.0,129.0})
             {
-                if(blink)dc.DrawLine(new Pen(ink,3){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},new Point(x-7,69),new Point(x+7,69));
-                else {dc.DrawEllipse(white,null,new Point(x,69),9,7);dc.DrawEllipse(ink,null,new Point(x+look,69),3.5,4.5);}
+                dc.DrawEllipse(white,null,new Point(x,69),9,Math.Max(.8,7*eyelid));dc.DrawEllipse(ink,null,new Point(x+look,69),3.5,Math.Max(.6,4.5*eyelid));
             }
             dc.DrawLine(new Pen(ink,2),new Point(104,96),new Point(120,96));
             if(stage==1)
@@ -141,10 +147,11 @@ public sealed class BuddyControl : FrameworkElement
             double t=lesson.StepComplete?1:moving?Math.Clamp(phase/lesson.Current.Seconds,0,1):Math.Max(.65,lesson.Progress);
             double stand=standing?(stage==0?t*t*(3-2*t):1):0;
             var hip=new Point(128,104-stand*18);
-            var shoulder=new Point(126+(posture&&stage==1?(moving?Math.Sin(phase*.9)*3:0):0),65-stand*11);
+            double chin=motion==ExerciseMotion.ChinGlide?(moving?StretchEnvelope(phase,lesson.Current.Seconds):.7):0;
+            var shoulder=new Point(126,65-stand*11);
             double shoulderDrop=posture&&stage==0?(moving?(Math.Sin(phase*1.1)+1)*2:3):0;
             shoulder.Y+=shoulderDrop;
-            var head=new Point(shoulder.X+(posture&&stage==1?(moving?(Math.Sin(phase*.9)+1)*3:0):0),shoulder.Y-24);
+            var head=new Point(shoulder.X-6*chin,shoulder.Y-24);
             var knee=new Point(156-stand*23,117);
             var ankle=new Point(157-stand*22,144);
             var farKnee=new Point(knee.X-9,knee.Y-2);var farAnkle=new Point(ankle.X-10,ankle.Y);
@@ -194,11 +201,13 @@ public sealed class BuddyControl : FrameworkElement
         }
         dc.Pop();dc.Pop();
     }
-    private bool DrawOfficeMotion(DrawingContext dc,ExerciseMotion motion,double phase,bool animated)
+    private bool DrawOfficeMotion(DrawingContext dc,ExerciseMotion motion,double phase,bool animated,int seconds)
     {
         if(motion is ExerciseMotion.Blink or ExerciseMotion.FarFocus or ExerciseMotion.Sit or ExerciseMotion.ChinGlide or ExerciseMotion.Feet or ExerciseMotion.Stand or ExerciseMotion.Walk or ExerciseMotion.ShoulderRoll or ExerciseMotion.Water)return false;
         var skin=Make("#F6D5BA");var accent=Make("#BDA9FF");var mint=Make("#83E8D0");var blue=Make("#94C4FF");var ink=Make("#14263C");var white=Make("#F1F7FF");
-        double q=animated?(Math.Sin(phase*1.05)+1)/2:.55;
+        double q=animated?(1-Math.Cos(phase*1.05))/2:.55;
+        if(motion is ExerciseMotion.NeckLeft or ExerciseMotion.NeckRight or ExerciseMotion.TiltLeft or ExerciseMotion.TiltRight)
+            q=animated?StretchEnvelope(phase,seconds):.7;
         void Line(Brush brush,double width,Point a,Point b)=>dc.DrawLine(new Pen(brush,width){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},a,b);
         if(motion is ExerciseMotion.WristLeft or ExerciseMotion.WristRight or ExerciseMotion.Hands)
         {
@@ -263,20 +272,28 @@ public sealed class BuddyControl : FrameworkElement
         bool tilt=motion is ExerciseMotion.TiltLeft or ExerciseMotion.TiltRight;
         bool turn=motion is ExerciseMotion.NeckLeft or ExerciseMotion.NeckRight;
         if(tilt)dc.PushTransform(new RotateTransform(direction*12*q,138,65));
+        if(turn){dc.PushTransform(new TranslateTransform(direction*3*q,0));dc.PushTransform(new ScaleTransform(1-.23*q,1,138,44));}
         dc.DrawEllipse(skin,null,new Point(138,44),18,22);
         dc.DrawEllipse(ink,null,new Point(138,29),17,8);
         double gaze=turn?direction*7*q:0;
         dc.DrawEllipse(white,null,new Point(131+gaze,44),4,5);dc.DrawEllipse(white,null,new Point(145+gaze,44),4,5);
         dc.DrawEllipse(ink,null,new Point(132+gaze,44),2,3);dc.DrawEllipse(ink,null,new Point(146+gaze,44),2,3);
         Line(ink,1.5,new Point(133+gaze,56),new Point(143+gaze,56));
+        if(turn){dc.Pop();dc.Pop();}
         if(tilt)dc.Pop();
         if(turn||tilt)Arrow(dc,new Point(194,42),new Point(194+direction*23,42+(tilt?12:0)),mint);
         if(motion==ExerciseMotion.Shrug){Arrow(dc,new Point(90,86),new Point(90,65),mint);Arrow(dc,new Point(186,86),new Point(186,65),mint);}
         return true;
     }
+    private static double StretchEnvelope(double phase,int seconds)
+    {
+        double t=Math.Clamp(Math.Min(phase/2,(seconds-phase)/2),0,1);
+        return t*t*(3-2*t);
+    }
     private static SolidColorBrush Make(string hex)
     {
-        var brush=(SolidColorBrush)new BrushConverter().ConvertFromString(hex)!;brush.Freeze();return brush;
+        if(Palette.TryGetValue(hex,out var cached))return cached;
+        var brush=(SolidColorBrush)new BrushConverter().ConvertFromString(hex)!;brush.Freeze();Palette[hex]=brush;return brush;
     }
     private static void Arrow(DrawingContext dc,Point from,Point to,Brush color)
     {
