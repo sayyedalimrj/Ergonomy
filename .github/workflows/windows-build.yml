@@ -27,10 +27,31 @@ jobs:
           ERGONOMY_UI_OUTPUT: ${{ github.workspace }}\test-evidence\ui
         run: |
           $testExe = Join-Path $PWD 'release\Ergonomy-win-x64\Ergonomy.exe'
-          foreach ($mode in @('--self-test', '--ui-self-test')) {
-            $proc = Start-Process -FilePath $testExe -ArgumentList $mode -PassThru
-            if (!$proc.WaitForExit(90000)) { $proc.Kill(); throw "Timeout: $mode" }
-            if ($proc.ExitCode -ne 0) { throw "$mode exited $($proc.ExitCode)" }
+          # This is the disposable CI desktop, never the installed user's settings.
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class MotionPolicy {
+            [DllImport("user32.dll", EntryPoint="SystemParametersInfoW", SetLastError=true)]
+            public static extern bool Read(uint action,uint param,ref bool value,uint flags);
+            [DllImport("user32.dll", EntryPoint="SystemParametersInfoW", SetLastError=true)]
+            public static extern bool Write(uint action,uint param,IntPtr value,uint flags);
+          }
+          '@
+          $previous = $false
+          if (![MotionPolicy]::Read(0x1042,0,[ref]$previous,0)) { throw 'Cannot read test desktop motion policy' }
+          try {
+            if (![MotionPolicy]::Write(0x1043,0,[IntPtr]1,2)) { throw 'Cannot enable animation on test desktop' }
+            foreach ($mode in @('--self-test', '--ui-self-test')) {
+              $proc = Start-Process -FilePath $testExe -ArgumentList $mode -PassThru
+              if (!$proc.WaitForExit(90000)) { $proc.Kill(); throw "Timeout: $mode" }
+              if ($proc.ExitCode -ne 0) { throw "$mode exited $($proc.ExitCode)" }
+            }
+            $motionLogs = Get-ChildItem (Join-Path $env:TEMP 'Ergonomy-test') -Recurse -Filter app.log | ForEach-Object { Get-Content $_.FullName -Raw }
+            if (($motionLogs -join "`n") -notmatch 'SystemAnimation=True') { throw 'Live animation test was not exercised' }
+          } finally {
+            $restore = if ($previous) { [IntPtr]1 } else { [IntPtr]0 }
+            [MotionPolicy]::Write(0x1043,0,$restore,2) | Out-Null
           }
       - name: Normal tray and timer lifecycle smoke
         shell: pwsh
