@@ -35,6 +35,7 @@ public sealed class ReminderEngine : IDisposable
     public bool IsIdle => _sessionLocked || IdleSeconds() >= 180;
 
     public void Start() => _tick.Start();
+    public void Configure(AppSettings settings) => _settings = settings;
 
     public (ReminderKind Kind, TimeSpan Remaining)? NextReminder
     {
