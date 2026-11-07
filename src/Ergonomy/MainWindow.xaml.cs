@@ -5,6 +5,9 @@ using System.Windows.Controls;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using WinForms = System.Windows.Forms;
+using Button = System.Windows.Controls.Button;
+using ComboBoxItem = System.Windows.Controls.ComboBoxItem;
+using Application = System.Windows.Application;
 
 namespace Ergonomy;
 
