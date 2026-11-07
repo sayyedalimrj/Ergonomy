@@ -50,6 +50,13 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem release -File | ForEach-Object { $h=Get-FileHash $_.FullName -Algorithm SHA256; "$($h.Hash.ToLower())  $($_.Name)" } | Set-Content release/SHA256SUMS.txt
+      - name: Collect diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force test-evidence | Out-Null
+          $logs = Join-Path $env:LOCALAPPDATA 'Ergonomy/logs'
+          if (Test-Path $logs) { Copy-Item $logs test-evidence/logs -Recurse -Force }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -57,7 +64,6 @@ jobs:
           path: |
             release/*.*
             test-evidence/
-            ~/AppData/Local/Ergonomy/logs/
           if-no-files-found: error
   prerelease:
     if: github.event_name == 'push' && github.ref == 'refs/heads/feat/wellness-dock-v3'
