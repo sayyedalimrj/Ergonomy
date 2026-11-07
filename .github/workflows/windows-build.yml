@@ -91,6 +91,12 @@ jobs:
           New-Item -ItemType Directory -Force test-evidence | Out-Null
           $logs = Join-Path $env:LOCALAPPDATA 'Ergonomy/logs'
           if (Test-Path $logs) { Copy-Item $logs test-evidence/logs -Recurse -Force }
+          $tests = Join-Path $env:TEMP 'Ergonomy-test'
+          if (Test-Path $tests) {
+            Get-ChildItem $tests -Recurse -Filter app.log | ForEach-Object {
+              Copy-Item $_.FullName (Join-Path 'test-evidence' ('selftest-' + $_.Directory.Parent.Name + '.log'))
+            }
+          }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

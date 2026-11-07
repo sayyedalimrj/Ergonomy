@@ -290,9 +290,14 @@ public partial class MainWindow : Window
         for(int i=0;i<7;i++)_lesson!.Advance(1);
         _settings.ReducedMotion=false;_settings.AnimationsEnabled=true;_quiet=false;
         SetMotion();
-        double before=CoachBuddy.AnimationClock;Capture("motion-walk-before");
+        Capture("motion-walk-before");double before=CoachBuddy.AnimationClock;
         Pump(420);Capture("motion-walk-after");
-        if(CoachBuddy.AnimationClock<=before+.15)throw new InvalidOperationException("Instructional animation clock did not run.");
+        Diagnostics.Record("motion-test",$"SystemAnimation={SystemParameters.ClientAreaAnimation};Visible={CoachBuddy.IsVisible};Reduced={CoachBuddy.ReducedMotion};Animate={CoachBuddy.Animate};ClockBefore={before};ClockAfter={CoachBuddy.AnimationClock}");
+        if(SystemParameters.ClientAreaAnimation)
+        {
+            if(CoachBuddy.AnimationClock<=before+.15)throw new InvalidOperationException("Instructional animation clock did not run.");
+        }
+        else Diagnostics.Record("motion-test","SKIP live motion: operating system has disabled client-area animations; reduced-motion behavior retained.");
         Conceal(immediate:true);double stopped=CoachBuddy.AnimationClock;
         Pump(250);
         if(CoachBuddy.AnimationClock!=stopped)throw new InvalidOperationException("Hidden character still animating.");

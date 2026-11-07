@@ -30,7 +30,13 @@ public sealed class BuddyControl : FrameworkElement
         get => _state;
         set { if (_state != value) { _state = value; InvalidateVisual(); } }
     }
-    public ExerciseLesson? Lesson { get; set; }
+    private ExerciseLesson? _lesson;
+    private int _lessonStep=-1;
+    public ExerciseLesson? Lesson
+    {
+        get=>_lesson;
+        set { _lesson=value;_phase=0;_lessonStep=-1;InvalidateVisual(); }
+    }
     public bool ReducedMotion { get; set; }
     public bool Animate { get; set; } = true;
     public BuddyControl()
@@ -96,6 +102,7 @@ public sealed class BuddyControl : FrameworkElement
         var moving=Animate&&!ReducedMotion&&SystemParameters.ClientAreaAnimation&&lesson.Running;
         double phase=moving?_phase:0;
         int stage=lesson.Index;
+        if(_lessonStep!=stage){_lessonStep=stage;_phase=0;phase=0;}
         if(lesson.Kind==ReminderKind.Eye)
         {
             // Eye lesson: a slow blink, then a stable far target. No eye-rolling exercise.
@@ -128,7 +135,7 @@ public sealed class BuddyControl : FrameworkElement
             // Side-view chair and articulated hip/knee/ankle geometry makes sitting/standing legible.
             var chair=new Pen(Make("#6A8297"),5){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round};
             if(posture||stage==0){dc.DrawLine(chair,new Point(99,69),new Point(99,114));dc.DrawLine(chair,new Point(99,111),new Point(144,111));dc.DrawLine(chair,new Point(113,112),new Point(106,147));}
-            double stand=standing?(stage==0?(moving?(Math.Sin(phase*1.1-Math.PI/2)+1)/2:.65):1):0;
+            double stand=standing?(stage==0?(moving?Math.Clamp(phase/6,0,1):.65):1):0;
             var hip=new Point(128,104-stand*18);
             var shoulder=new Point(126+(posture&&stage==1?(moving?Math.Sin(phase*.9)*3:0):0),65-stand*11);
             double shoulderDrop=posture&&stage==0?(moving?(Math.Sin(phase*1.1)+1)*2:3):0;
