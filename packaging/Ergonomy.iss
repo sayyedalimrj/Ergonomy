@@ -1,7 +1,7 @@
 ﻿[Setup]
 AppId=Ergonomy.WellnessDock
 AppName=همیار سلامت
-AppVersion=0.6.0
+AppVersion=0.7.0
 AppPublisher=میرجعفری
 DefaultDirName={localappdata}\Programs\Ergonomy
 DefaultGroupName=همیار سلامت
@@ -9,7 +9,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release
-OutputBaseFilename=Ergonomy-0.6.0-rc.1-setup-x64
+OutputBaseFilename=Ergonomy-0.7.0-rc.1-setup-x64
 SetupIconFile=..\src\Ergonomy\Assets\AppIcon.ico
 Compression=lzma2
 SolidCompression=yes

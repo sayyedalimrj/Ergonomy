@@ -1,3 +1,11 @@
+## 0.7.0 — 2026-11-07
+- Replace dropdown exercise filtering with keyboard-accessible wrapping category chips.
+- Add an optional five-item workstation self-check adapted from OSHA, with a local session tally rather than a health score.
+- Add a restrained glass exercise stage and smooth timer progress; remove repeated pain text from each exercise and keep concise guidance under About.
+- Render visible instruction at a target 30 fps using measured elapsed time and cached frozen brushes; hidden/reduced-motion behavior retained.
+- Improve gradual blinking, head turning and held neck/chin coaching; align source links for posture, chest and upper-back content.
+- Add native Windows checks for category buttons and workstation check/uncheck interactions.
+
 # Changelog
 
 ## 0.6.0-rc.1 — 2026-11-07

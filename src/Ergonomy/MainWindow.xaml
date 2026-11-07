@@ -34,30 +34,22 @@
     </Track>
    </ControlTemplate></Setter.Value></Setter>
   </Style>
-  <Style TargetType="ComboBox">
-   <Setter Property="Foreground" Value="#EAF7FF"/><Setter Property="FontSize" Value="12"/>
-   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
-    <Grid>
-     <ToggleButton Focusable="False" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
-      <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border Background="#26374D" BorderBrush="#55768F" BorderThickness="1" CornerRadius="10" Padding="10,8"><TextBlock Text="⌄" HorizontalAlignment="Left" Foreground="#83E8D0"/></Border></ControlTemplate></ToggleButton.Template>
-     </ToggleButton>
-     <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" Margin="12,8,28,8" IsHitTestVisible="False"/>
-     <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False">
-      <Border Background="#18283D" BorderBrush="#55768F" BorderThickness="1" CornerRadius="10" Padding="5" MinWidth="220"><ScrollViewer MaxHeight="260"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer></Border>
-     </Popup>
-    </Grid>
-    <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="#83E8D0"/></Trigger></ControlTemplate.Triggers>
-   </ControlTemplate></Setter.Value></Setter>
-  </Style>
-  <Style TargetType="ComboBoxItem">
-   <Setter Property="Foreground" Value="#EAF7FF"/><Setter Property="Padding" Value="10,7"/>
-   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem"><Border x:Name="Item" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Item" Property="Background" Value="#36556A"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter TargetName="Item" Property="Background" Value="#386F63"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
-  </Style>
-
   <Style TargetType="TextBox">
    <Setter Property="Background" Value="#25374D"/><Setter Property="Foreground" Value="#F2F8FF"/>
    <Setter Property="CaretBrush" Value="#83E8D0"/><Setter Property="BorderBrush" Value="#55768F"/>
    <Setter Property="Padding" Value="8,6"/><Setter Property="FontSize" Value="12"/><Setter Property="MinHeight" Value="32"/>
+  </Style>
+  <Style x:Key="FilterChip" TargetType="ListBoxItem">
+   <Setter Property="Foreground" Value="#D4E8EF"/><Setter Property="Padding" Value="10,7"/><Setter Property="Margin" Value="0,0,5,5"/><Setter Property="FontSize" Value="11"/>
+   <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+    <Border x:Name="Chip" Background="#202F45" BorderBrush="#3F5A70" BorderThickness="1" CornerRadius="12" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsSelected" Value="True"><Setter TargetName="Chip" Property="Background" Value="#386F63"/><Setter TargetName="Chip" Property="BorderBrush" Value="#83E8D0"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+     <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chip" Property="BorderBrush" Value="#83E8D0"/></Trigger>
+     <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Chip" Property="BorderThickness" Value="2"/><Setter TargetName="Chip" Property="BorderBrush" Value="#BDA9FF"/></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
   </Style>
  </Window.Resources>
  <Border x:Name="Glass" CornerRadius="22" BorderThickness="1" BorderBrush="#405C7E98" Padding="16,10" Background="#A6172238">
@@ -87,13 +79,18 @@
     <TextBlock Text="طراحی و توسعه" Foreground="#BBD5E2" HorizontalAlignment="Center" FontSize="11" Margin="0,8,0,4"/>
     <TextBlock x:Name="AuthorName" Text="میرجعفری" FlowDirection="LeftToRight" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center"/>
     <TextBlock x:Name="AuthorPhone" Text="۰۹۱۸۶۴۴۱۸۰۱" FlowDirection="LeftToRight" FontSize="16" Foreground="#83E8D0" HorizontalAlignment="Center" Margin="0,8,0,10"/>
-    <TextBlock Text="نسخهٔ ۰٫۶ · همراه آرام روز کاری" Foreground="#BBD5E2" FontSize="10" HorizontalAlignment="Center"/>
+    <TextBlock Text="نسخهٔ ۰٫۷ · همراه آرام روز کاری" Foreground="#BBD5E2" FontSize="10" HorizontalAlignment="Center"/>
+    <Expander Header="دربارهٔ راهنمای حرکت‌ها" Foreground="#BDD6E1" FontSize="11" Margin="0,12,0,0" Expanded="Details_Changed" Collapsed="Details_Changed">
+     <TextBlock Text="حرکت‌ها از راهنماهای CCOHS، Mayo Clinic و NHS اقتباس شده‌اند. زمان‌ها پیش‌فرض قابل تنظیم‌اند، نه الزام قانونی یا نسخهٔ درمانی. حرکت را در محدودهٔ راحت انجام بده؛ اگر درد یا ناراحتی ایجاد شد، متوقفش کن." TextWrapping="Wrap" Margin="0,9,0,0"/>
+    </Expander>
    </StackPanel>
    <StackPanel x:Name="LessonPanel" Visibility="Collapsed">
-    <local:BuddyControl x:Name="CoachBuddy" Width="276" Height="157" Margin="0,0,0,4"/>
-    <TextBlock x:Name="StepTitle" Text="یک مکث کوتاه" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" TextAlignment="Center"/>
+    <Border CornerRadius="18" BorderBrush="#335E8C9B" BorderThickness="1" Margin="0,4,0,12" Padding="0,5">
+     <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#2B638A98"/><GradientStop Offset="1" Color="#163B345C"/></LinearGradientBrush></Border.Background>
+     <local:BuddyControl x:Name="CoachBuddy" Width="274" Height="157"/>
+    </Border>
+    <TextBlock x:Name="StepTitle" TextWrapping="Wrap" Text="یک مکث کوتاه" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" TextAlignment="Center"/>
     <TextBlock x:Name="StepHint" Text="" Foreground="#C0D7E2" FontSize="11" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,7,0,0" TextWrapping="Wrap"/>
-    <TextBlock Text="اگر درد داری، حرکت را متوقف کن" FontSize="9" Foreground="#9DBDCD" HorizontalAlignment="Center" Margin="0,5,0,0"/>
     <TextBlock x:Name="StepNumber" Foreground="#96B9CB" FontSize="10" HorizontalAlignment="Center" Margin="0,9,0,0"/>
     <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
      <ProgressBar x:Name="LessonProgress" Height="3" Maximum="100" Foreground="#75E5CE" Background="#30485A" BorderThickness="0" VerticalAlignment="Center"/>
@@ -148,10 +145,23 @@
    </ScrollViewer>
    <StackPanel x:Name="LibraryPanel" Visibility="Collapsed" Margin="0,9,0,8">
     <TextBlock Text="حرکت‌های آرام اداری" FontSize="17" FontWeight="Bold"/>
-    <TextBlock Text="حرکت را انتخاب کن؛ آرام و بدون درد" FontSize="10" Foreground="#BDD6E1" Margin="0,6,0,9"/>
-    <ComboBox x:Name="ExerciseFilter" SelectionChanged="ExerciseFilter_Changed" Margin="0,0,0,9" AutomationProperties.Name="گروه حرکت‌ها">
-     <ComboBoxItem Content="همه"/><ComboBoxItem Content="چشم"/><ComboBoxItem Content="گردن و شانه"/><ComboBoxItem Content="بالاتنه"/><ComboBoxItem Content="دست و مچ"/><ComboBoxItem Content="نشستن"/><ComboBoxItem Content="حرکت و پا"/>
-    </ComboBox>
+    <TextBlock Text="یک حرکت انتخاب کن؛ آرام و راحت" FontSize="10" Foreground="#BDD6E1" Margin="0,6,0,9"/>
+    <ListBox x:Name="ExerciseFilter" SelectionChanged="ExerciseFilter_Changed" ItemContainerStyle="{StaticResource FilterChip}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled" Margin="0,0,0,7" AutomationProperties.Name="دکمه‌های گروه حرکت‌ها">
+     <ListBox.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ListBox.ItemsPanel>
+     <ListBoxItem Content="همه"/><ListBoxItem Content="چشم"/><ListBoxItem Content="گردن و شانه"/><ListBoxItem Content="بالاتنه"/><ListBoxItem Content="دست و مچ"/><ListBoxItem Content="نشستن"/><ListBoxItem Content="حرکت و پا"/>
+    </ListBox>
+    <Expander x:Name="WorkstationDetails" Header="چک سریع میز کار" Foreground="#BDE9DE" FontSize="12" Margin="0,0,0,10" Expanded="Details_Changed" Collapsed="Details_Changed">
+     <StackPanel Margin="0,9,0,0">
+      <TextBlock Text="خودت بررسی کن؛ هر مورد آماده است تیک بزن" TextWrapping="Wrap" FontSize="10" Foreground="#BDD6E1"/>
+      <CheckBox x:Name="CheckMonitor" Content="مانیتور روبه‌رو؛ بالای آن هم‌سطح چشم یا پایین‌تر" FontSize="10" Checked="Workstation_Changed" Unchecked="Workstation_Changed"/>
+      <CheckBox x:Name="CheckBack" Content="کمر تکیه‌گاه دارد؛ شانه‌ها راحت‌اند" FontSize="10" Checked="Workstation_Changed" Unchecked="Workstation_Changed"/>
+      <CheckBox x:Name="CheckFeet" Content="کف پا روی زمین یا زیرپایی است" FontSize="10" Checked="Workstation_Changed" Unchecked="Workstation_Changed"/>
+      <CheckBox x:Name="CheckWrists" Content="مچ‌ها هم‌راستای ساعد؛ موس نزدیک است" FontSize="10" Checked="Workstation_Changed" Unchecked="Workstation_Changed"/>
+      <CheckBox x:Name="CheckLight" Content="نور و بازتاب صفحه چشم را اذیت نمی‌کند" FontSize="10" Checked="Workstation_Changed" Unchecked="Workstation_Changed"/>
+      <TextBlock x:Name="WorkstationStatus" Text="۰ از ۵ مورد بررسی شد" FontSize="11" Foreground="#83E8D0" Margin="0,3,0,7"/>
+      <TextBlock Text="برگرفته از چک‌لیست OSHA · خودارزیابی" FontSize="9" Foreground="#BDD6E1"/>
+     </StackPanel>
+    </Expander>
     <ScrollViewer x:Name="LibraryScroller" MaxHeight="300" VerticalScrollBarVisibility="Auto"><ItemsControl x:Name="ExercisesList">
      <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding Title}" Tag="{Binding Motion}" Click="Exercise_Click" Margin="0,0,0,6" Padding="10,10" FontSize="12" HorizontalContentAlignment="Right"/></DataTemplate></ItemsControl.ItemTemplate>
     </ItemsControl></ScrollViewer>
