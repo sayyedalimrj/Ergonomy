@@ -11,8 +11,9 @@ ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release
 OutputBaseFilename=Ergonomy-0.8.0-rc.1-setup-x64
 SetupIconFile=..\src\Ergonomy\Assets\AppIcon.ico
-Compression=lzma2
+Compression=lzma2/ultra64
 SolidCompression=yes
+LZMAUseSeparateProcess=yes
 UninstallDisplayIcon={app}\Ergonomy.exe
 CloseApplications=yes
 [Files]
